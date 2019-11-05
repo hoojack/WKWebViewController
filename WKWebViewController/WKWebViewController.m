@@ -1,0 +1,518 @@
+//
+//  WKWebViewController.m
+//  WKWebViewController
+//
+//  Created by hoojack on 2017/12/18.
+//  Copyright © 2017年 hoojack. All rights reserved.
+//
+
+#import "WKWebViewController.h"
+
+#pragma mark - WKWebViewScriptHandlerObject
+@interface WKWebViewScriptHandlerObject : NSObject <WKScriptMessageHandler>
+
+@property (nonatomic, weak) id <WKScriptMessageHandler> delegate;
+
+@end
+
+@implementation WKWebViewScriptHandlerObject
+
+- (void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message
+{
+    if (self.delegate != nil && [self.delegate respondsToSelector:@selector(userContentController:didReceiveScriptMessage:)])
+    {
+        [self.delegate userContentController:userContentController didReceiveScriptMessage:message];
+    }
+}
+
+@end
+
+NSString* const WKExtendJSFunctionNameKey = @"name";
+
+/**/
+#pragma mark - WKWebViewController
+@interface WKWebViewController ()
+
+@property (nonatomic, strong) WKWebView* wkWebView;
+@property (nonatomic, assign) BOOL isViewAppear;
+
+@end
+
+@implementation WKWebViewController
+
+- (instancetype)init
+{
+    if ((self = [super init]))
+    {
+        self.messageName = @"WKWebview";
+    }
+    
+    return self;
+}
+
+- (void)dealloc
+{
+    [self.wkWebView.configuration.userContentController removeScriptMessageHandlerForName:self.messageName];
+    [self.wkWebView.configuration.userContentController removeAllUserScripts];
+    
+    self.wkWebView.UIDelegate = nil;
+    self.wkWebView.navigationDelegate = nil;
+}
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    
+    self.view.backgroundColor = [UIColor whiteColor];
+    self.automaticallyAdjustsScrollViewInsets = NO;
+    
+    [self createWKWebView];
+    [self loadURL];
+}
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+}
+
+- (void)viewWillLayoutSubviews
+{
+    [super viewWillLayoutSubviews];
+    
+    CGRect bounds = self.view.bounds;
+    self.wkWebView.frame = bounds;
+}
+
+- (void)viewWillAppear:(BOOL)animated
+{
+    [super viewWillAppear:animated];
+    
+    self.isViewAppear = YES;
+}
+
+- (void)viewWillDisappear:(BOOL)animated
+{
+    [super viewWillDisappear:animated];
+    
+    self.isViewAppear = NO;
+}
+
+- (void)createWKWebView
+{
+    WKWebViewScriptHandlerObject* webViewScriptHandlerObject = [[WKWebViewScriptHandlerObject alloc] init];
+    webViewScriptHandlerObject.delegate = self;
+    
+    WKUserContentController* userContentController = [[WKUserContentController alloc] init];
+    [userContentController addScriptMessageHandler:webViewScriptHandlerObject name:self.messageName];
+    WKWebViewConfiguration* config = [[WKWebViewConfiguration alloc] init];
+    config.userContentController = userContentController;
+    
+    WKPreferences* preferences = [[WKPreferences alloc] init];
+    preferences.javaScriptCanOpenWindowsAutomatically = YES;
+    config.preferences = preferences;
+    
+    WKWebView* wkWebView = [[WKWebView alloc] initWithFrame:self.view.bounds configuration:config];
+    wkWebView.UIDelegate = self;
+    wkWebView.navigationDelegate = self;
+    [self.view addSubview:wkWebView];
+    self.wkWebView = wkWebView;
+    
+    if (@available(iOS 11.0, *))
+    {
+        self.wkWebView.scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
+    }
+}
+
+- (NSArray<NSHTTPCookie*>*)getCookiesProperty
+{
+    return @[];
+}
+
+- (void)setupCookiesWithWebView:(WKWebView*)webView
+{
+    NSArray<NSHTTPCookie*>* cookiesProperty = [self getCookiesProperty];
+    NSString* cookies = @"";
+    WKUserContentController* userContentController = webView.configuration.userContentController;
+    
+    for (NSHTTPCookie* cookie in cookiesProperty)
+    {
+        NSString* name = cookie.name;
+        NSString* value = cookie.value;
+        NSString* domain = cookie.domain;
+        NSString* path = cookie.path;
+        NSDate* expiresDate = cookie.expiresDate;
+        
+        if (name.length == 0 || value.length == 0)
+        {
+            continue;
+        }
+        
+        cookies = [NSString stringWithFormat:@"document.cookie='%@=%@", name, value];
+        
+        if (domain.length > 0)
+        {
+            cookies = [cookies stringByAppendingFormat:@";domain=%@", domain];
+        }
+        
+        if (path.length > 0)
+        {
+            cookies = [cookies stringByAppendingFormat:@";path=%@", path];
+        }
+        
+        if (expiresDate != nil)
+        {
+            NSDateFormatter* formatter = [[NSDateFormatter alloc] init];
+            formatter.dateFormat = @"EEE, dd MMM yyyy HH:mm:ss 'GMT'";
+            formatter.timeZone = [NSTimeZone timeZoneWithAbbreviation:@"GMT"];
+            
+            NSString* dateString = [formatter stringFromDate:expiresDate];
+            cookies = [cookies stringByAppendingFormat:@";expires=%@", dateString];
+        }
+        
+        cookies = [cookies stringByAppendingString:@";'"];
+        
+        WKUserScript* userScript = [[WKUserScript alloc] initWithSource:cookies injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:NO];
+        [userContentController addUserScript:userScript];
+    }
+}
+
+- (void)setupCustomRequestHeader:(NSMutableURLRequest*)request
+{
+    NSArray<NSHTTPCookie*>* cookies = [self getCookiesProperty];
+    NSArray<NSHTTPCookie*>* matchedCookies = [cookies filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(NSHTTPCookie*  _Nullable evaluatedObject, NSDictionary<NSString *,id> * _Nullable bindings)
+    {
+        if ([request.URL.host rangeOfString:evaluatedObject.domain options:NSCaseInsensitiveSearch].location != NSNotFound)
+        {
+            return YES;
+        }
+        
+        return NO;
+    }]];
+    
+    if (matchedCookies.count == 0)
+    {
+        return;
+    }
+    NSDictionary<NSString*, NSString*>* requestHeaders = [NSHTTPCookie requestHeaderFieldsWithCookies:matchedCookies];
+    for (NSString* key in requestHeaders)
+    {
+        NSString* value = [requestHeaders objectForKey:key];
+        [request addValue:value forHTTPHeaderField:key];
+    }
+}
+
+- (NSURLRequest *)createURLRequest
+{
+    NSAssert(self.url.length > 0, @"Invalid url string");
+    NSURL* url = [NSURL URLWithString:self.url];
+    NSURLRequest* request = [[NSURLRequest alloc] initWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:10];
+    
+    return request;
+}
+
+- (void)loadURL
+{
+    NSURLRequest* request = [self createURLRequest];
+    if (request == nil)
+    {
+        return;
+    }
+    
+    [self loadURLWithRequest:request];
+}
+
+- (void)loadURLWithRequest:(NSURLRequest*)request
+{
+    NSMutableURLRequest* requestM = [request mutableCopy];
+    
+    [self setupCustomRequestHeader:requestM];
+    
+    [self.wkWebView loadRequest:[requestM copy]];
+}
+
+#pragma mark - JSConfig
+#define _JS_STR(str) #str
+static NSString* JSConfigSource = @_JS_STR(
+;(function(w){
+    w.#OBJECTNAME# = {
+        postMessage:function(args) {
+            var arr = [].slice.call(args), cbkey = null;
+            if (arr.length > 0) {
+                var cb = arr[arr.length - 1];
+                if (typeof cb === 'function') {
+                    arr.pop();
+                    cbkey = (new Date().getTime()).toString();
+                    this.callbacks[cbkey] = cb;
+                }
+            }
+            var msg = {'name':args.callee.name, 'args':arr};
+            if (cbkey != null) msg['callback'] = cbkey;
+            w.webkit.messageHandlers.#OBJECTNAME#.postMessage(msg);
+        },
+        extend:function() {
+            var target = this, length = arguments.length, arg;
+            for (var i = 0; i < length; i++) {
+                arg = arguments[i];
+                for (var name in arg) {
+                    target[name] = arg[name];
+                }
+            }
+            return target;
+        },
+        callbacks:{},
+        callback:function(key, data) {
+            var cb = this.callbacks[key], retval = null;
+            if (typeof cb === 'function') {
+                retval = cb(data);
+                delete this.callback[key];
+            }
+            return retval;
+        },
+        configs:{},
+        setConfig:function(arg) {
+            var target = this;
+            for (var name in arg) {
+                target.configs[name] = arg[name];
+            }
+        }
+    };
+    if (!w.onerror) {
+        w.onerror = function(m, u, l) {
+            w.#OBJECTNAME#.logError(m, u, l);
+        };
+    }
+    if (w.console.log) {
+        w.console.log = function(m) {
+            w.#OBJECTNAME#.logInfo(m);
+        }
+    }
+})(window););
+static NSString* JSExtendSource = @_JS_STR(
+{ #FUNCNAME#:function() {
+    this.postMessage(arguments);
+}});
+static NSString* JSCallbackSource = @_JS_STR(
+    window.#OBJECTNAME#.callback('%@', %@);
+);
+#undef _JS_STR
+
+- (void)setMainJSFunction:(WKWebView*)webView
+{
+    NSString* JSSource = [JSConfigSource stringByReplacingOccurrencesOfString:@"#OBJECTNAME#" withString:self.messageName];
+    WKUserScript* userScript = [[WKUserScript alloc] initWithSource:JSSource injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:NO];
+    [webView.configuration.userContentController addUserScript:userScript];
+}
+
+- (NSArray<NSDictionary*>*)getExtendJSFunction
+{
+    return @[];
+}
+
+- (NSArray<NSDictionary*>*)getExtendJSFunctionInternal
+{
+    return @[@{WKExtendJSFunctionNameKey:@"logError"},
+             @{WKExtendJSFunctionNameKey:@"logInfo"}];
+}
+
+- (NSDictionary<NSString *,id> *)getCustomConfigProperty
+{
+    return @{};
+}
+
+- (void)setExtendJSFunction:(WKWebView*)webView
+{
+    NSArray<NSDictionary*>* functionsExtend = [self getExtendJSFunction];
+    NSArray<NSDictionary*>* functionsInternal = [self getExtendJSFunctionInternal];
+    
+    NSMutableArray<NSDictionary*>* functionsM = [NSMutableArray arrayWithArray:functionsInternal];
+    [functionsM addObjectsFromArray:functionsExtend];
+    
+    NSString* JSExtend = @"";
+    for (NSDictionary* func in functionsM)
+    {
+        NSString* funcName = [func objectForKey:WKExtendJSFunctionNameKey];
+        NSString* JSConfig = [JSExtendSource stringByReplacingOccurrencesOfString:@"#FUNCNAME#" withString:funcName];
+        
+        JSExtend = [JSExtend stringByAppendingString:[JSConfig stringByAppendingString:@","]];
+    }
+    
+    if (JSExtend.length > 0)
+    {
+        JSExtend = [JSExtend stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@","]];
+        
+        NSString* JSSource = [NSString stringWithFormat:@"%@.extend(%@);", self.messageName, JSExtend];
+        WKUserScript* userScript = [[WKUserScript alloc] initWithSource:JSSource injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:NO];
+        [webView.configuration.userContentController addUserScript:userScript];
+    }
+}
+
+- (void)setCustomConfig:(WKWebView*)webView
+{
+    NSDictionary<NSString*, id>* configProp = [self getCustomConfigProperty];
+    
+    if (configProp.count > 0)
+    {
+        NSError* error = nil;
+        NSData* data = [NSJSONSerialization dataWithJSONObject:configProp options:kNilOptions error:&error];
+        if (data != nil && error == nil)
+        {
+            NSString* configJSON = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+            
+            NSString* JSSource = [NSString stringWithFormat:@"%@.setConfig(%@);", self.messageName, configJSON];
+            WKUserScript* userScript = [[WKUserScript alloc] initWithSource:JSSource injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:NO];
+            [webView.configuration.userContentController addUserScript:userScript];
+        }
+    }
+}
+
+#pragma mark - WKUIDelegate
+- (nullable WKWebView *)webView:(WKWebView *)webView createWebViewWithConfiguration:(WKWebViewConfiguration *)configuration forNavigationAction:(WKNavigationAction *)navigationAction windowFeatures:(WKWindowFeatures *)windowFeatures
+{
+    WKFrameInfo* targetFrame = navigationAction.targetFrame;
+    if (!targetFrame.isMainFrame)
+    {
+        [self loadURLWithRequest:navigationAction.request];
+    }
+    
+    return nil;
+}
+
+#pragma mark - WKNavigationDelegate
+- (void)webView:(WKWebView *)webView didStartProvisionalNavigation:(null_unspecified WKNavigation *)navigation
+{
+    [webView.configuration.userContentController removeAllUserScripts];
+    
+    [self setupCookiesWithWebView:webView];
+    
+    [self setMainJSFunction:webView];
+    
+    [self setExtendJSFunction:webView];
+    
+    [self setCustomConfig:webView];
+}
+
+- (void)webView:(WKWebView *)webView didReceiveServerRedirectForProvisionalNavigation:(null_unspecified WKNavigation *)navigation
+{
+}
+
+- (void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler
+{
+    decisionHandler(WKNavigationActionPolicyAllow);
+}
+
+- (void)webView:(WKWebView *)webView didFailProvisionalNavigation:(null_unspecified WKNavigation *)navigation withError:(NSError *)error
+{
+    
+}
+
+- (void)webView:(WKWebView *)webView didCommitNavigation:(null_unspecified WKNavigation *)navigation
+{
+    
+}
+
+- (void)webView:(WKWebView *)webView didFinishNavigation:(null_unspecified WKNavigation *)navigation
+{
+    __weak typeof(self) weakSelf = self;
+    [webView evaluateJavaScript:@"document.title;" completionHandler:^(id _Nullable response, NSError * _Nullable error)
+    {
+        if (response != nil)
+        {
+            NSString* title = (NSString*)response;
+            if (title.length == 0) title = weakSelf.documentTitle;
+            
+            weakSelf.navigationItem.title = response;
+        }
+    }];
+}
+
+#pragma mark - WKScriptMessageHandler
+- (void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message
+{
+    if (!self.isViewAppear)
+    {
+        return;
+    }
+    
+    NSString* name = message.name;
+    id body = message.body;
+    
+    if ([name isEqualToString:self.messageName] && [body isKindOfClass:[NSDictionary class]])
+    {
+        NSDictionary* bodyDict = (NSDictionary*)body;
+        NSString* func = [bodyDict objectForKey:@"name"];
+        NSArray* args = [bodyDict objectForKey:@"args"];
+        NSString* callback = [bodyDict objectForKey:@"callback"];
+        SEL selector = NSSelectorFromString([func stringByAppendingString:@":"]);
+        NSMethodSignature* sig = [self methodSignatureForSelector:selector];
+        if (sig != nil)
+        {
+            NSInvocation* invocation = [NSInvocation invocationWithMethodSignature:sig];
+            invocation.target = self;
+            invocation.selector = selector;
+            [invocation setArgument:(void*)&args atIndex:2];
+            [invocation invoke];
+            
+            if (callback.length > 0)
+            {
+                [self invokeJSCallback:invocation callback:callback];
+            }
+        }
+        else
+        {
+            NSAssert(0, @"Unable to find ‘%@’ implementation", func);
+        }
+    }
+    else
+    {
+        NSLog(@"%@", body);
+    }
+}
+
+- (void)invokeJSCallback:(NSInvocation*)invocation callback:(NSString*)callback
+{
+    void* retPtr = NULL;
+    [invocation getReturnValue:&retPtr];
+    id retVal = (__bridge id)retPtr;
+    
+    NSString* retStr = @"null";
+    if ([retVal isKindOfClass:[NSString class]])
+    {
+        retStr = [NSString stringWithFormat:@"'%@'", retVal];
+    }
+    else if ([retVal isKindOfClass:[NSNumber class]])
+    {
+        retStr = [NSString stringWithFormat:@"%@", retVal];
+    }
+    else if ([retVal isKindOfClass:[NSArray class]] ||
+             [retVal isKindOfClass:[NSDictionary class]])
+    {
+        NSError* error = nil;
+        NSData* data = [NSJSONSerialization dataWithJSONObject:retVal options:kNilOptions error:&error];
+        if (error == nil)
+        {
+            NSString* dataString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+            retStr = [NSString stringWithFormat:@"%@", dataString];
+            retStr = [retStr stringByReplacingOccurrencesOfString:@"\"" withString:@"'"];
+        }
+    }
+    
+    NSString* JSCallbackFormat = [JSCallbackSource stringByReplacingOccurrencesOfString:@"#OBJECTNAME#" withString:self.messageName];
+    NSString* JSCallback = [NSString stringWithFormat:JSCallbackFormat, callback, retStr];
+    [self.wkWebView evaluateJavaScript:JSCallback completionHandler:^(id _Nullable response, NSError * _Nullable error)
+    {
+         NSLog(@"%@, %@", response, error);
+    }];
+}
+
+#pragma mark - JSFunction
+- (void)logError:(id)arguments
+{
+    NSLog(@"%@", arguments);
+}
+
+- (void)logInfo:(id)arguments
+{
+    NSLog(@"%@", arguments);
+}
+
+@end

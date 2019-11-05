@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta charset="utf-8">
+	<title>WKWebView test</title>
+	<style type="text/css">
+		body { margin: 10px }
+		h3 { font-size: 15px; background-color: #eaeaea; padding: 5px }
+		input { font-size: 12px; border: solid 1px #dcdcdc }
+		img { border: 1px solid #cacaca }
+	</style>
+</head>
+<body>
+
+<script type="text/javascript">
+
+	function testCallback()
+	{
+		window.wkTestObject.testFunc3('arg1', {a:1, b:2}, function(response){
+			alert(response);
+			return {a:10};
+		});
+	}
+
+	function showCookies()
+	{
+		alert(document.cookie);
+	}
+
+	function showconfig()
+	{
+		var configs = window.wkTestObject.configs;
+		
+		alert(JSON.stringify(configs));
+	}
+
+	document.addEventListener("DOMContentLoaded", function(e) {
+		console.log("DOMContentLoaded");
+		var imgs = document.querySelectorAll("img");
+		imgs.forEach(function(el, idx) {
+			el.addEventListener("click", function(e) {
+				alert(e.target.parentNode.tagName);
+			});
+		});
+	});
+
+</script>
+
+<h3>Test message handler</h3>
+<input type="button" name="test" value = "Call testFunc" onclick="window.wkTestObject.testFunc('arg1', 'arg2', 'arg3', 4, 5);">
+<input type="button" name="test" value = "Call testFunc2" onclick="window.wkTestObject.testFunc2('arg1', {a:1, b:2});">
+<input type="button" name="test" value = "Call testCallback" onclick="testCallback();">
+<input type="button" name="test" value = "Call testFunc4" onclick="window.wkTestObject.testFunc4();">
+<input type="button" name="test" value = "Call testError" onclick="window.xsxsd();">
+<input type="button" name="test" value = "Alert" onclick="alert('alert');">
+<input type="button" name="test" value = "Confirm" onclick="alert(window.confirm('confirm'));">
+<input type="button" name="test" value = "Prompt" onclick="alert(window.prompt('Input text:','default'));">
+<input type="button" name="test" value = "showCookies" onclick="showCookies();">
+<input type="button" name="test" value = "showconfig" onclick="showconfig();">
+<br/>
+<h3>Test image</h3>
+<a href=""><img src="/images/132573.jpeg" width="100px" height="100px" /></a>
+<img src="/images/133456.jpeg" width="100px" height="100px" />
+<br/>
+<h3>Test link</h3>
+<a class="link" href="/wkwebview_01.html">Test page</a>
+<a class="link" href="/wkwebview_01.php">PHP page</a>
+
+
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0">
+    <meta name="renderer" content="webkit">
+	<title>webview js</title>
+	<script type="text/javascript" src="/jquery-3.2.1.js"></script>
+</head>
+<body>
+<script type="text/javascript">
+function testwebkit()
+{
+	var args = {
+		f1:"v1",
+		f2:"v2"
+	};
+	
+    webkit.messageHandlers.wkTestObject.postMessage(["123", 456, args]);
+}
+
+function testAjax()
+{
+	var options = {
+		url:"/wkwebview_01.php",
+		type: "POST",
+		dataType:"text",
+		success:function(x, t)
+		{
+			alert(x);
+		}
+	};
+	$.ajax(options);
+}
+
+ 
+</script>
+<br>
+<input type="button" name="test1" value = "testwebkit" onclick="testwebkit();">
+<input type="button" name="test2" value = "testAjax" onclick="testAjax();">
+</body>
+</html>
