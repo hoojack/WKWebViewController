@@ -45,10 +45,35 @@
 </table>
 
 #### 运行Demo 
-1. 将 Docs/html 下的文件复制到本机web服务器目录;
-2. 在etc/host添加 127.0.0.1	www.test.com, 在浏览器能正常访问 http://www.test.com/wkwebview.html 即可;
-3. 打开Example/testWKWebView.xcodeproj工程即可看到运行效果;
-4. 相关代码请参考demo 和 html。
+1. 将 `Docs/html`下的文件复制到本机web服务器目录;
+2. 在 `/etc/host`添加 127.0.0.1	www.test.com, 在浏览器能正常访问 http://www.test.com/wkwebview.html 即可;
+3. 打开 `Example/testWKWebView.xcodeproj`工程即可看到运行效果;
+4. 更多示例代码请参考Demo或html。
+
+#### 相关代码示例
+1. JS->Native
+
+    window.wkTestObject.testFunc3('arg1', {a:1, b:2}, function(response) {
+
+        alert(response);
+	    return {a:10};
+    });
+
+   - `WKWebViewController->messageName`设置为`wkTestObject`
+   - 添加 `-(id)testFunc3(id args)` 函数实现
+
+    `支持的参数类型Number, String, Array, JSON Object, 最后一个参数可以是function（Native 函数调用后返回值会通过此函数回调过来）`。
+
+2. Native->JS
+   
+    `NSArray *args = @[@"str", @{"key":value}, @[@"item"], @(1)];`
+
+    `invokeJSFunction(@"testJSFunction", args, completionHandler:completionHandler);`
+
+
+    - 参数一: JS函数名
+    - 参数二:参数列表(支持的类型，NSNumber, NSString, NSArray, NSDictionary)
+    - 参数三:执行结果回调
 
 安装
 ==============
