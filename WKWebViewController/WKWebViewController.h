@@ -48,6 +48,11 @@ FOUNDATION_EXPORT NSString* const WKExtendJSFunctionNameKey;
 - (nullable NSURLRequest*)createURLRequest;
 
 /**
+ * Sets the webpage contents and base URL.
+ */
+- (void)loadHTMLString:(NSString *)string baseURL:(nullable NSURL *)baseURL;
+
+/**
  * Returns custom cookie property array
  */
 - (nullable NSArray<NSHTTPCookie*>*)getCookiesProperty;
@@ -67,6 +72,16 @@ FOUNDATION_EXPORT NSString* const WKExtendJSFunctionNameKey;
  * Returns custom config for window.<messageName>.configs['key'].
  */
 - (nullable NSDictionary<NSString*, id>*)getCustomConfigProperty;
+
+/**
+ * Invoke Javascript function with some arguments.
+ @code
+ invokeJSFunction(@"functionName", @[@"str", @{"key":value}, @[@"item"], @(1)], completionHandler:completionHandler);
+ @endcode
+ */
+- (void)invokeJSFunction:(NSString*)functionName
+                    args:(NSArray*)args
+       completionHandler:(void(^)(id _Nullable, NSError * _Nullable error))completionHandler;
 
 @end
 

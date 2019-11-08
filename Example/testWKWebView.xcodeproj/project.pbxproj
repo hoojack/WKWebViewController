@@ -12,12 +12,11 @@
 		DE4F79011FECE573001C9B39 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DE4F79001FECE573001C9B39 /* Assets.xcassets */; };
 		DE4F79071FECE573001C9B39 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = DE4F79061FECE573001C9B39 /* main.m */; };
 		DEEC57AF236BD5AB006A8E13 /* WKWebViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = DEEC57AD236BD5AB006A8E13 /* WKWebViewController.m */; };
+		DEEC57B32372B018006A8E13 /* WKWebViewController.bundle in Resources */ = {isa = PBXBuildFile; fileRef = DEEC57B22372B018006A8E13 /* WKWebViewController.bundle */; };
+		DEEC57B52372DA1E006A8E13 /* icon_nav_close@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = DEEC57B42372DA1E006A8E13 /* icon_nav_close@2x.png */; };
+		DEEC57C02372ECBC006A8E13 /* network_error.html in Resources */ = {isa = PBXBuildFile; fileRef = DEEC57BF2372ECBC006A8E13 /* network_error.html */; };
 		FC0B536B2352D1F5004D899F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = FC0B536A2352D1F5004D899F /* LaunchScreen.storyboard */; };
 		FC0B536D2352D239004D899F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = FC0B536C2352D239004D899F /* Main.storyboard */; };
-		FC0B53742352D2D8004D899F /* content_error.html in Resources */ = {isa = PBXBuildFile; fileRef = FC0B536F2352D2D8004D899F /* content_error.html */; };
-		FC0B53752352D2D8004D899F /* icon_nav_back@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = FC0B53702352D2D8004D899F /* icon_nav_back@2x.png */; };
-		FC0B53772352D2D8004D899F /* icon_nav_close@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = FC0B53722352D2D8004D899F /* icon_nav_close@2x.png */; };
-		FC0B53782352D2D8004D899F /* network_error.html in Resources */ = {isa = PBXBuildFile; fileRef = FC0B53732352D2D8004D899F /* network_error.html */; };
 		FC39A91720026E8B000C3E49 /* WebViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = FC39A91620026E8B000C3E49 /* WebViewController.m */; };
 		FCA39869236F12AB00E7CC23 /* WKWebViewControllerEx.m in Sources */ = {isa = PBXBuildFile; fileRef = FCA39868236F12AB00E7CC23 /* WKWebViewControllerEx.m */; };
 /* End PBXBuildFile section */
@@ -33,12 +32,11 @@
 		DE4F79061FECE573001C9B39 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		DEEC57AD236BD5AB006A8E13 /* WKWebViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = WKWebViewController.m; sourceTree = "<group>"; };
 		DEEC57AE236BD5AB006A8E13 /* WKWebViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WKWebViewController.h; sourceTree = "<group>"; };
+		DEEC57B22372B018006A8E13 /* WKWebViewController.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; path = WKWebViewController.bundle; sourceTree = "<group>"; };
+		DEEC57B42372DA1E006A8E13 /* icon_nav_close@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "icon_nav_close@2x.png"; sourceTree = "<group>"; };
+		DEEC57BF2372ECBC006A8E13 /* network_error.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = network_error.html; sourceTree = "<group>"; };
 		FC0B536A2352D1F5004D899F /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		FC0B536C2352D239004D899F /* Main.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = Main.storyboard; sourceTree = "<group>"; };
-		FC0B536F2352D2D8004D899F /* content_error.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = content_error.html; sourceTree = "<group>"; };
-		FC0B53702352D2D8004D899F /* icon_nav_back@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "icon_nav_back@2x.png"; sourceTree = "<group>"; };
-		FC0B53722352D2D8004D899F /* icon_nav_close@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "icon_nav_close@2x.png"; sourceTree = "<group>"; };
-		FC0B53732352D2D8004D899F /* network_error.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = network_error.html; sourceTree = "<group>"; };
 		FC39A91420026937000C3E49 /* testWKWebView.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = testWKWebView.pch; sourceTree = "<group>"; };
 		FC39A91520026E8B000C3E49 /* WebViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebViewController.h; sourceTree = "<group>"; };
 		FC39A91620026E8B000C3E49 /* WebViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = WebViewController.m; sourceTree = "<group>"; };
@@ -97,6 +95,7 @@
 		DEEC57AC236BD5AB006A8E13 /* WKWebViewController */ = {
 			isa = PBXGroup;
 			children = (
+				DEEC57B22372B018006A8E13 /* WKWebViewController.bundle */,
 				DEEC57AE236BD5AB006A8E13 /* WKWebViewController.h */,
 				DEEC57AD236BD5AB006A8E13 /* WKWebViewController.m */,
 				FCA39867236F12AB00E7CC23 /* WKWebViewControllerEx.h */,
@@ -109,10 +108,8 @@
 		FC0B536E2352D2B7004D899F /* Resource */ = {
 			isa = PBXGroup;
 			children = (
-				FC0B536F2352D2D8004D899F /* content_error.html */,
-				FC0B53702352D2D8004D899F /* icon_nav_back@2x.png */,
-				FC0B53722352D2D8004D899F /* icon_nav_close@2x.png */,
-				FC0B53732352D2D8004D899F /* network_error.html */,
+				DEEC57B42372DA1E006A8E13 /* icon_nav_close@2x.png */,
+				DEEC57BF2372ECBC006A8E13 /* network_error.html */,
 			);
 			path = Resource;
 			sourceTree = "<group>";
@@ -174,11 +171,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FC0B53782352D2D8004D899F /* network_error.html in Resources */,
+				DEEC57C02372ECBC006A8E13 /* network_error.html in Resources */,
+				DEEC57B32372B018006A8E13 /* WKWebViewController.bundle in Resources */,
 				FC0B536B2352D1F5004D899F /* LaunchScreen.storyboard in Resources */,
-				FC0B53742352D2D8004D899F /* content_error.html in Resources */,
-				FC0B53752352D2D8004D899F /* icon_nav_back@2x.png in Resources */,
-				FC0B53772352D2D8004D899F /* icon_nav_close@2x.png in Resources */,
+				DEEC57B52372DA1E006A8E13 /* icon_nav_close@2x.png in Resources */,
 				DE4F79011FECE573001C9B39 /* Assets.xcassets in Resources */,
 				FC0B536D2352D239004D899F /* Main.storyboard in Resources */,
 			);

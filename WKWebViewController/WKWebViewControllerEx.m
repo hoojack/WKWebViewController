@@ -13,6 +13,7 @@
 
 @property (class, readonly) CGFloat barHeight;
 @property (nonatomic, weak) WKWebView* webView;
+@property (nonatomic, weak) NSBundle* bundle;
 @property (nonatomic, strong) UIToolbar* toolbar;
 @property (nonatomic, strong) UIBarButtonItem* backbarItem;
 @property (nonatomic, strong) UIBarButtonItem* forwardbarItem;
@@ -46,19 +47,30 @@
     [self addSubview:toolbar];
     self.toolbar = toolbar;
     
-    UIBarButtonItem* backbarItem = [[UIBarButtonItem alloc] initWithTitle:@"◀" style:UIBarButtonItemStylePlain target:self action:@selector(onBackAction:)];
+    UIBarButtonItem* backbarItem = [[UIBarButtonItem alloc] initWithImage:nil style:UIBarButtonItemStylePlain target:self action:@selector(onBackAction:)];
     backbarItem.enabled = NO;
     self.backbarItem = backbarItem;
     
-    UIBarButtonItem* forwardbarItem = [[UIBarButtonItem alloc] initWithTitle:@"▶" style:UIBarButtonItemStylePlain target:self action:@selector(onForwardAction:)];
+    UIBarButtonItem* forwardbarItem = [[UIBarButtonItem alloc] initWithImage:nil style:UIBarButtonItemStylePlain target:self action:@selector(onForwardAction:)];
     forwardbarItem.enabled = NO;
     self.forwardbarItem = forwardbarItem;
     
     UIBarButtonItem* flexbarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil];
     UIBarButtonItem* spacebarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFixedSpace target:nil action:nil];
-    spacebarItem.width = 20.0;
+    spacebarItem.width = 30.0;
     
     [self.toolbar setItems:@[flexbarItem, backbarItem, spacebarItem, forwardbarItem, flexbarItem]];
+}
+
+- (void)setBundle:(NSBundle *)bundle
+{
+    _bundle = bundle;
+    
+    UIImage* imageBack = [UIImage imageNamed:@"icon_nav_back" inBundle:self.bundle compatibleWithTraitCollection:nil];
+    self.backbarItem.image = imageBack;
+    
+    UIImage* imageForward = [UIImage imageNamed:@"icon_nav_forward" inBundle:self.bundle compatibleWithTraitCollection:nil];
+    self.forwardbarItem.image = imageForward;
 }
 
 - (void)onBackAction:(id)sender
@@ -127,8 +139,6 @@
         {
             return;
         }
-        
-        NSLog(@"contentOffset:%@, %d, %f", NSStringFromCGPoint(contentOffset), scrollView.tracking, self.contentOffset.y - contentOffset.y);
         
         if (!CGPointEqualToPoint(self.contentOffset, contentOffset))
         {
@@ -210,6 +220,7 @@
 @property (nonatomic, assign) BOOL isViewAppear;
 @property (nonatomic, strong) WKWebViewProgressView* progressView;
 @property (nonatomic, strong) WKWebViewNavigationBar* navigationBar;
+@property (nonatomic, strong) NSBundle* bundle;
 @property (nonatomic, weak) UITextField* javaScriptTextInputPanelWithPrompt;
 
 @end
@@ -250,6 +261,7 @@
     if (self != nil)
     {
         self.progressColor = [UIColor orangeColor];
+        self.bundle = [NSBundle bundleWithPath:[[NSBundle mainBundle] pathForResource:@"WKWebViewController" ofType:@"bundle"]];
     }
     
     return self;
@@ -330,6 +342,7 @@
 - (void)createNavigationbar
 {
     self.navigationBar = [[WKWebViewNavigationBar alloc] initWithFrame:CGRectZero];
+    self.navigationBar.bundle = self.bundle;
     [self.view addSubview:self.navigationBar];
     
     [self.wkWebView addObserver:self.navigationBar forKeyPath:@"canGoBack" options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:NULL];
@@ -344,11 +357,25 @@
     [self.wkWebView.scrollView removeObserver:self.navigationBar forKeyPath:@"contentOffset"];
 }
 
+- (void)loadResourceHtml:(NSString*)name
+{
+    NSBundle* bundle = [NSBundle bundleWithPath:[[NSBundle mainBundle] pathForResource:@"WKWebViewController" ofType:@"bundle"]];
+    NSString* htmlFile = [bundle pathForResource:name ofType:@"html"];
+    NSString* htmlString = [NSString stringWithContentsOfFile:htmlFile encoding:NSUTF8StringEncoding error:nil];
+    
+    NSString* path = [bundle bundlePath];
+    NSURL* baseURL = [NSURL fileURLWithPath:path];
+    
+    [self loadHTMLString:htmlString baseURL:baseURL];
+}
+
 #pragma mark - WKUIDelegate
 - (void)webView:(WKWebView *)webView runJavaScriptAlertPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(void))completionHandler
 {
     UIAlertController* alertController = [UIAlertController alertControllerWithTitle:@"" message:message preferredStyle:UIAlertControllerStyleAlert];
-    [alertController addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action)
+    
+    NSString* okTitle = [self.bundle localizedStringForKey:@"ID_OK" value:nil table:nil];
+    [alertController addAction:[UIAlertAction actionWithTitle:okTitle style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action)
     {
     }]];
     
@@ -361,12 +388,14 @@
 {
     UIAlertController* alertController = [UIAlertController alertControllerWithTitle:@"" message:message preferredStyle:UIAlertControllerStyleAlert];
     
-    [alertController addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action)
+    NSString* cancelTitle = [self.bundle localizedStringForKey:@"ID_CANCEL" value:nil table:nil];
+    [alertController addAction:[UIAlertAction actionWithTitle:cancelTitle style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action)
     {
         completionHandler(NO);
     }]];
     
-    [alertController addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action)
+    NSString* okTitle = [self.bundle localizedStringForKey:@"ID_OK" value:nil table:nil];
+    [alertController addAction:[UIAlertAction actionWithTitle:okTitle style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action)
     {
         completionHandler(YES);
     }]];
@@ -385,12 +414,14 @@
         weakSelf.javaScriptTextInputPanelWithPrompt.text = defaultText;
     }];
     
-    [alertController addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action)
+    NSString* cancelTitle = [self.bundle localizedStringForKey:@"ID_CANCEL" value:nil table:nil];
+    [alertController addAction:[UIAlertAction actionWithTitle:cancelTitle style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action)
     {
         completionHandler(nil);
     }]];
     
-    [alertController addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action)
+    NSString* okTitle = [self.bundle localizedStringForKey:@"ID_OK" value:nil table:nil];
+    [alertController addAction:[UIAlertAction actionWithTitle:okTitle style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action)
     {
         completionHandler(weakSelf.javaScriptTextInputPanelWithPrompt.text);
     }]];
@@ -411,6 +442,21 @@
     [super webView:webView didFailProvisionalNavigation:navigation withError:error];
     
     [self showProgressView:NO];
+    
+    switch (error.code)
+    {
+        case NSURLErrorTimedOut:
+        case NSURLErrorCannotConnectToHost:
+        case NSURLErrorNetworkConnectionLost:
+        case NSURLErrorCannotFindHost:
+        case NSURLErrorNotConnectedToInternet:
+        {
+            [self loadResourceHtml:@"network_error"];
+        }
+            break;
+        default:
+            break;
+    }
 }
 
 - (void)webView:(WKWebView *)webView didFinishNavigation:(null_unspecified WKNavigation *)navigation

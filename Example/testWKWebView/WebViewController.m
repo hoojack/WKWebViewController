@@ -70,38 +70,16 @@
     }
 }
 
-- (void)loadResourceHtml:(NSString*)name
-{
-    NSString* htmlFile = [[NSBundle mainBundle] pathForResource:name ofType:@"html"];
-    NSString* htmlString = [NSString stringWithContentsOfFile:htmlFile encoding:NSUTF8StringEncoding error:nil];
-    
-    NSString* path = [[NSBundle mainBundle] bundlePath];
-    NSURL* baseURL = [NSURL fileURLWithPath:path];
-    
-    [self.wkWebView loadHTMLString:htmlString baseURL:baseURL];
-}
-
-- (void)webView:(WKWebView *)webView didFailNavigation:(WKNavigation *)navigation withError:(NSError *)error
-{
-    switch (error.code)
-    {
-        case NSURLErrorTimedOut:
-        case NSURLErrorCannotConnectToHost:
-        case NSURLErrorNetworkConnectionLost:
-        case NSURLErrorCannotFindHost:
-        case NSURLErrorNotConnectedToInternet:
-        {
-            [self loadResourceHtml:@"network_error"];
-        }
-            break;
-        default:
-            break;
-    }
-}
-
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation
 {
     [super webView:webView didFinishNavigation:navigation];
+    
+    // Invoke JSFunction
+    NSArray* args = @[@"str", @(123), @[@"a", @"b"], @{@"key1":@"value", @"key2":@(1)}];
+    [self invokeJSFunction:@"testJSFunction" args:args completionHandler:^(id _Nullable response, NSError * _Nullable error)
+    {
+        NSLog(@"%@", response);
+    }];
 }
 
 - (NSArray<NSHTTPCookie*> *)getCookiesProperty

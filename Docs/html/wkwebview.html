@@ -37,12 +37,26 @@
 		alert(JSON.stringify(configs));
 	}
 
+	function testJSFunction()
+	{
+		var args = [].slice.call(arguments);
+		
+		console.log("testJSFunction args:" + JSON.stringify(args));
+
+		return "testJSFunction response";
+	}
+
 	document.addEventListener("DOMContentLoaded", function(e) {
-		console.log("DOMContentLoaded");
 		var imgs = document.querySelectorAll("img");
 		imgs.forEach(function(el, idx) {
 			el.addEventListener("click", function(e) {
-				alert(e.target.parentNode.tagName);
+				var img = e.target;
+				console.log(img.src + ",{" + img.offsetTop + "," + img.offsetLeft + "," + img.clientWidth + "," + img.clientHeight + "}");
+			});
+			el.addEventListener("touchstart", function(e) {
+				setTimeout(function() {
+					alert("touch event");
+				}, 1e3);
 			});
 		});
 	});

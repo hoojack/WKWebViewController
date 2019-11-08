@@ -203,7 +203,6 @@ NSString* const WKExtendJSFunctionNameKey = @"name";
 
 - (NSURLRequest *)createURLRequest
 {
-    NSAssert(self.url.length > 0, @"Invalid url string");
     NSURL* url = [NSURL URLWithString:self.url];
     NSURLRequest* request = [[NSURLRequest alloc] initWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:10];
     
@@ -228,6 +227,11 @@ NSString* const WKExtendJSFunctionNameKey = @"name";
     [self setupCustomRequestHeader:requestM];
     
     [self.wkWebView loadRequest:[requestM copy]];
+}
+
+- (void)loadHTMLString:(NSString *)string baseURL:(nullable NSURL *)baseURL
+{
+    [self.wkWebView loadHTMLString:string baseURL:baseURL];
 }
 
 #pragma mark - JSConfig
@@ -276,11 +280,12 @@ static NSString* JSConfigSource = @_JS_STR(
             }
         }
     };
-    if (!w.onerror) {
-        w.onerror = function(m, u, l) {
-            w.#OBJECTNAME#.logError(m, u, l);
-        };
-    }
+    w.document.addEventListener('DOMContentLoaded', function(e) {
+        w.#OBJECTNAME#.domContentLoaded();
+    });
+    w.addEventListener('error', function(e) {
+        w.#OBJECTNAME#.logError(e.message, e.filename, e.lineno);
+    });
     if (w.console.log) {
         w.console.log = function(m) {
             w.#OBJECTNAME#.logInfo(m);
@@ -311,7 +316,8 @@ static NSString* JSCallbackSource = @_JS_STR(
 - (NSArray<NSDictionary*>*)getExtendJSFunctionInternal
 {
     return @[@{WKExtendJSFunctionNameKey:@"logError"},
-             @{WKExtendJSFunctionNameKey:@"logInfo"}];
+             @{WKExtendJSFunctionNameKey:@"logInfo"},
+             @{WKExtendJSFunctionNameKey:@"domContentLoaded"}];
 }
 
 - (NSDictionary<NSString *,id> *)getCustomConfigProperty
@@ -468,26 +474,22 @@ static NSString* JSCallbackSource = @_JS_STR(
     }
 }
 
-- (void)invokeJSCallback:(NSInvocation*)invocation callback:(NSString*)callback
+- (NSString*)argumentToString:(id)anObject
 {
-    void* retPtr = NULL;
-    [invocation getReturnValue:&retPtr];
-    id retVal = (__bridge id)retPtr;
-    
     NSString* retStr = @"null";
-    if ([retVal isKindOfClass:[NSString class]])
+    if ([anObject isKindOfClass:[NSString class]])
     {
-        retStr = [NSString stringWithFormat:@"'%@'", retVal];
+        retStr = [NSString stringWithFormat:@"'%@'", anObject];
     }
-    else if ([retVal isKindOfClass:[NSNumber class]])
+    else if ([anObject isKindOfClass:[NSNumber class]])
     {
-        retStr = [NSString stringWithFormat:@"%@", retVal];
+        retStr = [NSString stringWithFormat:@"%@", anObject];
     }
-    else if ([retVal isKindOfClass:[NSArray class]] ||
-             [retVal isKindOfClass:[NSDictionary class]])
+    else if ([anObject isKindOfClass:[NSArray class]] ||
+             [anObject isKindOfClass:[NSDictionary class]])
     {
         NSError* error = nil;
-        NSData* data = [NSJSONSerialization dataWithJSONObject:retVal options:kNilOptions error:&error];
+        NSData* data = [NSJSONSerialization dataWithJSONObject:anObject options:kNilOptions error:&error];
         if (error == nil)
         {
             NSString* dataString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
@@ -496,6 +498,16 @@ static NSString* JSCallbackSource = @_JS_STR(
         }
     }
     
+    return retStr;
+}
+
+- (void)invokeJSCallback:(NSInvocation*)invocation callback:(NSString*)callback
+{
+    void* retPtr = NULL;
+    [invocation getReturnValue:&retPtr];
+    id retVal = (__bridge id)retPtr;
+    
+    NSString* retStr = [self argumentToString:retVal];
     NSString* JSCallbackFormat = [JSCallbackSource stringByReplacingOccurrencesOfString:@"#OBJECTNAME#" withString:self.messageName];
     NSString* JSCallback = [NSString stringWithFormat:JSCallbackFormat, callback, retStr];
     [self.wkWebView evaluateJavaScript:JSCallback completionHandler:^(id _Nullable response, NSError * _Nullable error)
@@ -504,15 +516,43 @@ static NSString* JSCallbackSource = @_JS_STR(
     }];
 }
 
-#pragma mark - JSFunction
+- (void)invokeJSFunction:(NSString*)functionName
+                    args:(NSArray*)args
+       completionHandler:(void(^)(id _Nullable, NSError * _Nullable error))completionHandler
+{
+    NSMutableArray<NSString*>* argsM = [NSMutableArray array];
+    for (id arg in args)
+    {
+        NSString* argStr = [self argumentToString:arg];
+        [argsM addObject:argStr];
+    }
+    
+    NSString* jsSource = [NSString stringWithFormat:@"%@(", functionName];
+    for (NSString* argStr in argsM)
+    {
+        jsSource = [jsSource stringByAppendingFormat:@"%@,", argStr];
+    }
+    
+    jsSource = [jsSource stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@","]];
+    jsSource = [jsSource stringByAppendingString:@");"];
+    
+    [self.wkWebView evaluateJavaScript:jsSource completionHandler:completionHandler];
+}
+
+#pragma mark - Internal Function
 - (void)logError:(id)arguments
 {
-    NSLog(@"%@", arguments);
+    NSLog(@"Error:%@", arguments);
 }
 
 - (void)logInfo:(id)arguments
 {
-    NSLog(@"%@", arguments);
+    NSLog(@"console.log:%@", arguments);
+}
+
+- (void)domContentLoaded:(id)arguments
+{
+    NSLog(@"domContentLoaded");
 }
 
 @end
