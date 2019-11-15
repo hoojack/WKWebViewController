@@ -23,7 +23,6 @@
     if ((self = [super init]))
     {
         self.messageName = @"wkTestObject";
-        self.showProgress = YES;
     }
     
     return self;

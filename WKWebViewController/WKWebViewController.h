@@ -38,6 +38,16 @@ FOUNDATION_EXPORT NSString* const WKExtendJSFunctionNameKey;
 @property (nonnull, nonatomic, copy) NSString* url;
 
 /**
+ * The cache policy for the request.
+ */
+@property (nonatomic, assign) NSURLRequestCachePolicy cachePolicy;
+
+/**
+ * The timeout interval for the request.
+ */
+@property (nonatomic, assign) NSTimeInterval timeoutInterval;
+
+/**
  * A title display on navigation bar, if not special, get "document.title" instead.
  */
 @property (nullable, nonatomic, copy) NSString* documentTitle;

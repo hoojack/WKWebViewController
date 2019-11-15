@@ -8,6 +8,11 @@
 
 #import "WKWebViewControllerEx.h"
 
+static NSString* const kEstimatedProgress = @"estimatedProgress";
+static NSString* const kCanGoBack = @"canGoBack";
+static NSString* const kCanGoForward = @"canGoForward";
+static NSString* const kContentOffset = @"contentOffset";
+
 #pragma mark - WKWebViewNavigationBar
 @interface WKWebViewNavigationBar : UIView
 
@@ -18,6 +23,11 @@
 @property (nonatomic, strong) UIBarButtonItem* backbarItem;
 @property (nonatomic, strong) UIBarButtonItem* forwardbarItem;
 @property (nonatomic, assign) CGPoint contentOffset;
+
+@property (nonatomic, assign, readonly) BOOL canGoBack;
+@property (nonatomic, assign, readonly) BOOL canGoForward;
+
+- (void)showToolBarIfNeeded;
 
 @end
 
@@ -106,30 +116,37 @@
     }
 }
 
+- (void)showToolBarIfNeeded
+{
+    if (self.canGoBack || self.canGoForward)
+    {
+        [self showToolBar:YES];
+    }
+}
+
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context
 {
-    if ([keyPath isEqualToString:@"canGoBack"])
+    if ([keyPath isEqualToString:kCanGoBack])
     {
-        WKWebView* webview = self.webView;
         self.webView = object;
         
-        if (webview == nil)
-        {
-            [self showToolBar:YES];
-        }
-        
         NSNumber* canGoBack = [change objectForKey:NSKeyValueChangeNewKey];
-        self.backbarItem.enabled = canGoBack.boolValue;
+        _canGoBack = canGoBack.boolValue;
+        self.backbarItem.enabled = self.canGoBack;
+        
+        [self showToolBarIfNeeded];
     }
-    else if ([keyPath isEqualToString:@"canGoForward"])
+    else if ([keyPath isEqualToString:kCanGoForward])
     {
         self.webView = object;
         
         NSNumber* canGoForward = [change objectForKey:NSKeyValueChangeNewKey];
-        self.forwardbarItem.enabled = canGoForward.boolValue;
+        _canGoForward = canGoForward.boolValue;
+        self.forwardbarItem.enabled = self.canGoForward;
         
+        [self showToolBarIfNeeded];
     }
-    else if ([keyPath isEqualToString:@"contentOffset"])
+    else if ([keyPath isEqualToString:kContentOffset])
     {
         NSValue* offsetValue = [change objectForKey:NSKeyValueChangeNewKey];
         CGPoint contentOffset = offsetValue.CGPointValue;
@@ -153,7 +170,6 @@
             
             self.contentOffset = contentOffset;
         }
-        
     }
 }
 
@@ -205,7 +221,7 @@
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context
 {
-    if ([keyPath isEqualToString:@"estimatedProgress"])
+    if ([keyPath isEqualToString:kEstimatedProgress])
     {
         NSNumber* newValue = [change objectForKey:NSKeyValueChangeNewKey];
         self.progress = newValue.doubleValue;
@@ -260,7 +276,10 @@
     
     if (self != nil)
     {
+        self.showProgress = YES;
         self.progressColor = [UIColor orangeColor];
+        
+        self.showBackForwardBar = YES;
         self.bundle = [NSBundle bundleWithPath:[[NSBundle mainBundle] pathForResource:@"WKWebViewController" ofType:@"bundle"]];
     }
     
@@ -306,6 +325,11 @@
 
 - (void)createProgressView
 {
+    if (!self.showProgress)
+    {
+        return;
+    }
+    
     WKWebViewProgressView* progressView = [[WKWebViewProgressView alloc] init];
     progressView.progressBar.backgroundColor = self.progressColor;
     progressView.hidden = YES;
@@ -317,11 +341,6 @@
 
 - (void)showProgressView:(BOOL)show
 {
-    if (!self.showProgress)
-    {
-        return;
-    }
-    
     self.progressView.hidden = !show;
     if (show)
     {
@@ -331,30 +350,55 @@
 
 - (void)addProgressObserver
 {
-    [self.wkWebView addObserver:self.progressView forKeyPath:@"estimatedProgress" options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:NULL];
+    [self.wkWebView addObserver:self.progressView forKeyPath:kEstimatedProgress options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:NULL];
 }
 
 - (void)removeProgressObserver
 {
-    [self.wkWebView removeObserver:self.progressView forKeyPath:@"estimatedProgress"];
+    if (!self.showProgress)
+    {
+        return;
+    }
+    
+    [self.wkWebView removeObserver:self.progressView forKeyPath:kEstimatedProgress];
 }
 
 - (void)createNavigationbar
 {
+    if (!self.showBackForwardBar)
+    {
+        return;
+    }
+    
     self.navigationBar = [[WKWebViewNavigationBar alloc] initWithFrame:CGRectZero];
     self.navigationBar.bundle = self.bundle;
     [self.view addSubview:self.navigationBar];
     
-    [self.wkWebView addObserver:self.navigationBar forKeyPath:@"canGoBack" options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:NULL];
-    [self.wkWebView addObserver:self.navigationBar forKeyPath:@"canGoForward" options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:NULL];
-    [self.wkWebView.scrollView addObserver:self.navigationBar forKeyPath:@"contentOffset" options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:NULL];
+    [self.wkWebView addObserver:self.navigationBar forKeyPath:kCanGoBack options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:NULL];
+    [self.wkWebView addObserver:self.navigationBar forKeyPath:kCanGoForward options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:NULL];
+    [self.wkWebView.scrollView addObserver:self.navigationBar forKeyPath:kContentOffset options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:NULL];
 }
 
 - (void)removeNavigationBarObserver
 {
-    [self.wkWebView removeObserver:self.navigationBar forKeyPath:@"canGoBack"];
-    [self.wkWebView removeObserver:self.navigationBar forKeyPath:@"canGoForward"];
-    [self.wkWebView.scrollView removeObserver:self.navigationBar forKeyPath:@"contentOffset"];
+    if (!self.showBackForwardBar)
+    {
+        return;
+    }
+    
+    [self.wkWebView removeObserver:self.navigationBar forKeyPath:kCanGoBack];
+    [self.wkWebView removeObserver:self.navigationBar forKeyPath:kCanGoForward];
+    [self.wkWebView.scrollView removeObserver:self.navigationBar forKeyPath:kContentOffset];
+}
+
+- (void)showBackForwardBarIfNeeded
+{
+    if (!self.showBackForwardBar)
+    {
+        return;
+    }
+    
+    [self.navigationBar showToolBarIfNeeded];
 }
 
 - (void)loadResourceHtml:(NSString*)name
@@ -464,6 +508,8 @@
     [super webView:webView didFinishNavigation:navigation];
     
     [self showProgressView:NO];
+    
+    [self showBackForwardBarIfNeeded];
 }
 
 - (void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler

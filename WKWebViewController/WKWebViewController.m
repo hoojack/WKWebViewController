@@ -204,7 +204,7 @@ NSString* const WKExtendJSFunctionNameKey = @"name";
 - (NSURLRequest *)createURLRequest
 {
     NSURL* url = [NSURL URLWithString:self.url];
-    NSURLRequest* request = [[NSURLRequest alloc] initWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:10];
+    NSURLRequest* request = [[NSURLRequest alloc] initWithURL:url cachePolicy:self.cachePolicy timeoutInterval:self.timeoutInterval];
     
     return request;
 }
@@ -283,6 +283,10 @@ static NSString* JSConfigSource = @_JS_STR(
     w.document.addEventListener('DOMContentLoaded', function(e) {
         w.#OBJECTNAME#.domContentLoaded();
     });
+    w.document.addEventListener('DOMSubtreeModified', function(e) {
+        var tagName = e.target.tagName || "";
+        w.#OBJECTNAME#.domSubtreeModified(tagName);
+    });
     w.addEventListener('error', function(e) {
         w.#OBJECTNAME#.logError(e.message, e.filename, e.lineno);
     });
@@ -317,7 +321,8 @@ static NSString* JSCallbackSource = @_JS_STR(
 {
     return @[@{WKExtendJSFunctionNameKey:@"logError"},
              @{WKExtendJSFunctionNameKey:@"logInfo"},
-             @{WKExtendJSFunctionNameKey:@"domContentLoaded"}];
+             @{WKExtendJSFunctionNameKey:@"domContentLoaded"},
+             @{WKExtendJSFunctionNameKey:@"domSubtreeModified"}];
 }
 
 - (NSDictionary<NSString *,id> *)getCustomConfigProperty
@@ -371,6 +376,21 @@ static NSString* JSCallbackSource = @_JS_STR(
     }
 }
 
+- (void)getWebDocumentTitle
+{
+    __weak typeof(self) weakSelf = self;
+    [self.wkWebView evaluateJavaScript:@"document.title;" completionHandler:^(id _Nullable response, NSError * _Nullable error)
+    {
+        if (response != nil)
+        {
+            NSString* title = (NSString*)response;
+            if (title.length == 0) title = weakSelf.documentTitle;
+            
+            weakSelf.navigationItem.title = response;
+        }
+    }];
+}
+
 #pragma mark - WKUIDelegate
 - (nullable WKWebView *)webView:(WKWebView *)webView createWebViewWithConfiguration:(WKWebViewConfiguration *)configuration forNavigationAction:(WKNavigationAction *)navigationAction windowFeatures:(WKWindowFeatures *)windowFeatures
 {
@@ -413,22 +433,12 @@ static NSString* JSCallbackSource = @_JS_STR(
 
 - (void)webView:(WKWebView *)webView didCommitNavigation:(null_unspecified WKNavigation *)navigation
 {
-    
+    [self getWebDocumentTitle];
 }
 
 - (void)webView:(WKWebView *)webView didFinishNavigation:(null_unspecified WKNavigation *)navigation
 {
-    __weak typeof(self) weakSelf = self;
-    [webView evaluateJavaScript:@"document.title;" completionHandler:^(id _Nullable response, NSError * _Nullable error)
-    {
-        if (response != nil)
-        {
-            NSString* title = (NSString*)response;
-            if (title.length == 0) title = weakSelf.documentTitle;
-            
-            weakSelf.navigationItem.title = response;
-        }
-    }];
+    [self getWebDocumentTitle];
 }
 
 #pragma mark - WKScriptMessageHandler
@@ -553,6 +563,21 @@ static NSString* JSCallbackSource = @_JS_STR(
 - (void)domContentLoaded:(id)arguments
 {
     NSLog(@"domContentLoaded");
+}
+
+- (void)domSubtreeModified:(id)arguments
+{
+    NSArray* args = (NSArray*)arguments;
+    if (args.count == 0)
+    {
+        return;
+    }
+    
+    NSString* tagName = args.firstObject;
+    if ([tagName compare:@"title" options:NSCaseInsensitiveSearch] == NSOrderedSame)
+    {
+        [self getWebDocumentTitle];
+    }
 }
 
 @end

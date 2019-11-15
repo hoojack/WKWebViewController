@@ -50,20 +50,37 @@
 		var imgs = document.querySelectorAll("img");
 		imgs.forEach(function(el, idx) {
 			el.addEventListener("click", function(e) {
+				console.log(e.target + ":click");
 				var img = e.target;
 				console.log(img.src + ",{" + img.offsetTop + "," + img.offsetLeft + "," + img.clientWidth + "," + img.clientHeight + "}");
 			});
 			el.addEventListener("touchstart", function(e) {
-				setTimeout(function() {
-					alert("touch event");
+				console.log(e.target + ":touch start");
+				var target = e.target;
+				target.timer = setTimeout(function() {
+					console.log(target + ":long press touch event");
 				}, 1e3);
+			});
+			el.addEventListener("touchend", function(e) {
+				console.log(e.target + ":touch end");
+				var target = e.target;
+				clearTimeout(target.timer);
 			});
 		});
 	});
 
+	document.addEventListener("DOMSubtreeModified", function(e) {
+		console.log(e.target.tagName);
+	});
+
+	setTimeout(function() {
+		document.title = "delay set custom title";
+		document.getElementById("h3title").innerHTML = "delay h3 title";
+	}, 2000);
+
 </script>
 
-<h3>Test message handler</h3>
+<h3 id="h3title">Test message handler</h3>
 <input type="button" name="test" value = "Call testFunc" onclick="window.wkTestObject.testFunc('arg1', 'arg2', 'arg3', 4, 5);">
 <input type="button" name="test" value = "Call testFunc2" onclick="window.wkTestObject.testFunc2('arg1', {a:1, b:2});">
 <input type="button" name="test" value = "Call testCallback" onclick="testCallback();">

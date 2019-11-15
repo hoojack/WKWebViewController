@@ -15,6 +15,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, assign) BOOL showProgress;
 @property (nonnull, nonatomic, strong) UIColor* progressColor;
 
+@property (nonatomic, assign) BOOL showBackForwardBar;
+
 /**
  * Clear webview cache
  */
