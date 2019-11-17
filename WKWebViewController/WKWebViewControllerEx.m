@@ -224,7 +224,10 @@ static NSString* const kContentOffset = @"contentOffset";
     if ([keyPath isEqualToString:kEstimatedProgress])
     {
         NSNumber* newValue = [change objectForKey:NSKeyValueChangeNewKey];
-        self.progress = newValue.doubleValue;
+        
+        double progress = newValue.doubleValue;
+        if (progress == 1.0) progress = 0;
+        self.progress = progress;
     }
 }
 

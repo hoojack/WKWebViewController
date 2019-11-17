@@ -70,7 +70,7 @@
 	});
 
 	document.addEventListener("DOMSubtreeModified", function(e) {
-		console.log(e.target.tagName);
+		console.log(e.target.nodeName);
 	});
 
 	setTimeout(function() {
@@ -96,6 +96,8 @@
 <a href=""><img src="/images/132573.jpeg" width="100px" height="100px" /></a>
 <img src="/images/133456.jpeg" width="100px" height="100px" />
 <br/>
+<h3>Test Video</h3>
+<video style="width:300px;height: 200px" src="https://edge.ivideo.sina.com.cn/30969791801.mp4?KID=sina,viask&Expires=1574006400&ssig=aV%2FrAsackT" controls="controls" poster="/images/132573.jpeg" webkit-playsinline="true" playsinline="true">Not support</video>
 <h3>Test link</h3>
 <a class="link" href="/wkwebview_01.html">Test page</a>
 <a class="link" href="/wkwebview_01.php">PHP page</a>

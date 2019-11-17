@@ -106,6 +106,7 @@ NSString* const WKExtendJSFunctionNameKey = @"name";
     [userContentController addScriptMessageHandler:webViewScriptHandlerObject name:self.messageName];
     WKWebViewConfiguration* config = [[WKWebViewConfiguration alloc] init];
     config.userContentController = userContentController;
+    config.allowsInlineMediaPlayback = YES;
     
     WKPreferences* preferences = [[WKPreferences alloc] init];
     preferences.javaScriptCanOpenWindowsAutomatically = YES;
@@ -284,8 +285,8 @@ static NSString* JSConfigSource = @_JS_STR(
         w.#OBJECTNAME#.domContentLoaded();
     });
     w.document.addEventListener('DOMSubtreeModified', function(e) {
-        var tagName = e.target.tagName || "";
-        w.#OBJECTNAME#.domSubtreeModified(tagName);
+        var nodeName = e.target.nodeName;
+        w.#OBJECTNAME#.domSubtreeModified(nodeName);
     });
     w.addEventListener('error', function(e) {
         w.#OBJECTNAME#.logError(e.message, e.filename, e.lineno);
@@ -438,7 +439,7 @@ static NSString* JSCallbackSource = @_JS_STR(
 
 - (void)webView:(WKWebView *)webView didFinishNavigation:(null_unspecified WKNavigation *)navigation
 {
-    [self getWebDocumentTitle];
+    
 }
 
 #pragma mark - WKScriptMessageHandler
@@ -563,6 +564,8 @@ static NSString* JSCallbackSource = @_JS_STR(
 - (void)domContentLoaded:(id)arguments
 {
     NSLog(@"domContentLoaded");
+    
+    [self getWebDocumentTitle];
 }
 
 - (void)domSubtreeModified:(id)arguments
@@ -573,8 +576,8 @@ static NSString* JSCallbackSource = @_JS_STR(
         return;
     }
     
-    NSString* tagName = args.firstObject;
-    if ([tagName compare:@"title" options:NSCaseInsensitiveSearch] == NSOrderedSame)
+    NSString* nodeName = args.firstObject;
+    if ([nodeName compare:@"title" options:NSCaseInsensitiveSearch] == NSOrderedSame)
     {
         [self getWebDocumentTitle];
     }
