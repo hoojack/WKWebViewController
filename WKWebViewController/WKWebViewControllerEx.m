@@ -1,6 +1,6 @@
 //
 //  WKWebViewControllerEx.m
-//  WKWebViewController
+//  WKWebViewController <https://github.com/hoojack/WKWebViewController>
 //
 //  Created by hoojack on 2017/12/18.
 //  Copyright © 2019 hoojack. All rights reserved.
@@ -12,6 +12,7 @@ static NSString* const kEstimatedProgress = @"estimatedProgress";
 static NSString* const kCanGoBack = @"canGoBack";
 static NSString* const kCanGoForward = @"canGoForward";
 static NSString* const kContentOffset = @"contentOffset";
+static NSString* const kDocumentTitle = @"title";
 
 #pragma mark - WKWebViewNavigationBar
 @interface WKWebViewNavigationBar : UIView
@@ -22,10 +23,12 @@ static NSString* const kContentOffset = @"contentOffset";
 @property (nonatomic, strong) UIToolbar* toolbar;
 @property (nonatomic, strong) UIBarButtonItem* backbarItem;
 @property (nonatomic, strong) UIBarButtonItem* forwardbarItem;
+@property (nonatomic, strong) UIBarButtonItem* spacebarItem;
 @property (nonatomic, assign) CGPoint contentOffset;
 
 @property (nonatomic, assign, readonly) BOOL canGoBack;
 @property (nonatomic, assign, readonly) BOOL canGoForward;
+@property (nonatomic, assign) CGFloat backForwardSpace;
 
 - (void)showToolBarIfNeeded;
 
@@ -67,6 +70,7 @@ static NSString* const kContentOffset = @"contentOffset";
     
     UIBarButtonItem* flexbarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil];
     UIBarButtonItem* spacebarItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFixedSpace target:nil action:nil];
+    self.spacebarItem = spacebarItem;
     spacebarItem.width = 30.0;
     
     [self.toolbar setItems:@[flexbarItem, backbarItem, spacebarItem, forwardbarItem, flexbarItem]];
@@ -81,6 +85,23 @@ static NSString* const kContentOffset = @"contentOffset";
     
     UIImage* imageForward = [UIImage imageNamed:@"icon_nav_forward" inBundle:self.bundle compatibleWithTraitCollection:nil];
     self.forwardbarItem.image = imageForward;
+}
+
+- (void)setTintColor:(UIColor *)tintColor
+{
+    [super setTintColor:tintColor];
+    
+    self.toolbar.tintColor = tintColor;
+}
+
+- (void)setBackForwardSpace:(CGFloat)backForwardSpace
+{
+    _backForwardSpace = backForwardSpace;
+    
+    if (_backForwardSpace > 0)
+    {
+        self.spacebarItem.width = _backForwardSpace;
+    }
 }
 
 - (void)onBackAction:(id)sender
@@ -98,12 +119,26 @@ static NSString* const kContentOffset = @"contentOffset";
     CGRect frame = self.frame;
     NSTimeInterval duration = 0.25;
     
+    if (show == !self.hidden)
+    {
+        return;
+    }
+    
     if (show && CGRectGetMinY(frame) >= CGRectGetMaxY(self.webView.frame) - CGRectGetHeight(frame))
     {
         frame.origin.y = CGRectGetMaxY(self.webView.frame) - CGRectGetHeight(frame);
         [UIView animateWithDuration:duration animations:^
         {
             self.frame = frame;
+        }
+        completion:^(BOOL finished)
+        {
+            if (finished)
+            {
+                self.hidden = NO;
+                [self.superview setNeedsLayout];
+                [self.superview layoutIfNeeded];
+            }
         }];
     }
     else if (!show && CGRectGetMinY(frame) <= CGRectGetMaxY(self.webView.frame))
@@ -112,6 +147,15 @@ static NSString* const kContentOffset = @"contentOffset";
         [UIView animateWithDuration:duration animations:^
         {
            self.frame = frame;
+        }
+        completion:^(BOOL finished)
+        {
+            if (finished)
+            {
+                self.hidden = YES;
+                [self.superview setNeedsLayout];
+                [self.superview layoutIfNeeded];
+            }
         }];
     }
 }
@@ -151,13 +195,15 @@ static NSString* const kContentOffset = @"contentOffset";
         NSValue* offsetValue = [change objectForKey:NSKeyValueChangeNewKey];
         CGPoint contentOffset = offsetValue.CGPointValue;
         
+        //NSLog(@"ContentOffset:%@", NSStringFromCGPoint(contentOffset));
+        
         UIScrollView* scrollView = object;
         if (!scrollView.tracking || self.webView == nil)
         {
             return;
         }
         
-        if (!CGPointEqualToPoint(self.contentOffset, contentOffset))
+        if (contentOffset.y >= 0 && !CGPointEqualToPoint(self.contentOffset, contentOffset))
         {
             if (self.contentOffset.y - contentOffset.y < 0)
             {
@@ -233,10 +279,53 @@ static NSString* const kContentOffset = @"contentOffset";
 
 @end
 
+#pragma mark - WKWebViewControllerKVOHandler
+
+@protocol WKWebViewControllerKVOHandlerDelegate <NSObject>
+@optional
+- (void)webViewDocumentTitleDidChange:(NSString*)title;
+
+@end
+
+@interface WKWebViewControllerKVOHandler : NSObject
+
+@property (nonatomic, weak) WKWebViewProgressView* progressView;
+@property (nonatomic, weak) WKWebViewNavigationBar* navigationBar;
+@property (nonatomic, weak) id<WKWebViewControllerKVOHandlerDelegate> delegate;
+
+@end
+
+@implementation WKWebViewControllerKVOHandler
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context
+{
+    if ([keyPath isEqualToString:kDocumentTitle])
+    {
+        if (self.delegate != nil && [self.delegate respondsToSelector:@selector(webViewDocumentTitleDidChange:)])
+        {
+            NSString* title = [change objectForKey:NSKeyValueChangeNewKey];
+            [self.delegate webViewDocumentTitleDidChange:title];
+        }
+    }
+    else if ([keyPath isEqualToString:kCanGoBack] ||
+             [keyPath isEqualToString:kCanGoForward] ||
+             [keyPath isEqualToString:kContentOffset])
+    {
+        [self.navigationBar observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+    }
+    else if ([keyPath isEqualToString:kEstimatedProgress])
+    {
+        [self.progressView observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+    }
+}
+
+@end
+
 #pragma mark - WKWebViewControllerEx
-@interface WKWebViewControllerEx ()
+@interface WKWebViewControllerEx () <WKWebViewControllerKVOHandlerDelegate>
 
 @property (nonatomic, assign) BOOL isViewAppear;
+@property (nonatomic, strong) WKWebViewControllerKVOHandler* KVOHandler;
 @property (nonatomic, strong) WKWebViewProgressView* progressView;
 @property (nonatomic, strong) WKWebViewNavigationBar* navigationBar;
 @property (nonatomic, strong) NSBundle* bundle;
@@ -269,8 +358,7 @@ static NSString* const kContentOffset = @"contentOffset";
 
 - (void)dealloc
 {
-    [self removeNavigationBarObserver];
-    [self removeProgressObserver];
+    [self removeKVOHandler];
 }
 
 - (instancetype)init
@@ -283,6 +371,7 @@ static NSString* const kContentOffset = @"contentOffset";
         self.progressColor = [UIColor orangeColor];
         
         self.showBackForwardBar = YES;
+        self.backForwardBarTintColor = [UIColor blackColor];
         self.bundle = [NSBundle bundleWithPath:[[NSBundle mainBundle] pathForResource:@"WKWebViewController" ofType:@"bundle"]];
     }
     
@@ -293,6 +382,7 @@ static NSString* const kContentOffset = @"contentOffset";
 {
     [super viewDidLoad];
     
+    [self setupKVOHandler];
     [self createProgressView];
     [self createNavigationbar];
 }
@@ -323,7 +413,43 @@ static NSString* const kContentOffset = @"contentOffset";
     {
         navigationBarHeight += self.view.safeAreaInsets.bottom;
     }
-    self.navigationBar.frame = CGRectMake(0, CGRectGetHeight(bounds), CGRectGetWidth(bounds), navigationBarHeight);
+    
+    CGRect navigationBarFrame = CGRectZero;
+    CGRect wkWebViewFrame = CGRectZero;
+    if (self.showBackForwardBar && !self.navigationBar.hidden)
+    {
+        navigationBarFrame = CGRectMake(0, CGRectGetHeight(bounds) - navigationBarHeight, CGRectGetWidth(bounds), navigationBarHeight);
+        wkWebViewFrame = CGRectMake(0, 0, CGRectGetWidth(bounds), CGRectGetHeight(bounds) - navigationBarHeight);
+    }
+    else
+    {
+        navigationBarFrame = CGRectMake(0, CGRectGetHeight(bounds), CGRectGetWidth(bounds), navigationBarHeight);
+        wkWebViewFrame = CGRectMake(0, 0, CGRectGetWidth(bounds), CGRectGetHeight(bounds));
+    }
+    
+    self.navigationBar.frame = navigationBarFrame;
+    self.wkWebView.frame = wkWebViewFrame;
+}
+
+- (void)setupKVOHandler
+{
+    self.KVOHandler = [[WKWebViewControllerKVOHandler alloc] init];
+    self.KVOHandler.delegate = self;
+    
+    [self.wkWebView addObserver:self.KVOHandler forKeyPath:kDocumentTitle options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:NULL];
+    [self.wkWebView addObserver:self.KVOHandler forKeyPath:kEstimatedProgress options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:NULL];
+    [self.wkWebView addObserver:self.KVOHandler forKeyPath:kCanGoBack options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:NULL];
+    [self.wkWebView addObserver:self.KVOHandler forKeyPath:kCanGoForward options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:NULL];
+    [self.wkWebView.scrollView addObserver:self.KVOHandler forKeyPath:kContentOffset options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:NULL];
+}
+
+- (void)removeKVOHandler
+{
+    [self.wkWebView removeObserver:self.KVOHandler forKeyPath:kDocumentTitle];
+    [self.wkWebView removeObserver:self.KVOHandler forKeyPath:kEstimatedProgress];
+    [self.wkWebView removeObserver:self.KVOHandler forKeyPath:kCanGoBack];
+    [self.wkWebView removeObserver:self.KVOHandler forKeyPath:kCanGoForward];
+    [self.wkWebView.scrollView removeObserver:self.KVOHandler forKeyPath:kContentOffset];
 }
 
 - (void)createProgressView
@@ -338,8 +464,7 @@ static NSString* const kContentOffset = @"contentOffset";
     progressView.hidden = YES;
     [self.wkWebView.scrollView addSubview:progressView];
     self.progressView = progressView;
-    
-    [self addProgressObserver];
+    self.KVOHandler.progressView = self.progressView;
 }
 
 - (void)showProgressView:(BOOL)show
@@ -351,21 +476,6 @@ static NSString* const kContentOffset = @"contentOffset";
     }
 }
 
-- (void)addProgressObserver
-{
-    [self.wkWebView addObserver:self.progressView forKeyPath:kEstimatedProgress options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:NULL];
-}
-
-- (void)removeProgressObserver
-{
-    if (!self.showProgress)
-    {
-        return;
-    }
-    
-    [self.wkWebView removeObserver:self.progressView forKeyPath:kEstimatedProgress];
-}
-
 - (void)createNavigationbar
 {
     if (!self.showBackForwardBar)
@@ -373,25 +483,14 @@ static NSString* const kContentOffset = @"contentOffset";
         return;
     }
     
-    self.navigationBar = [[WKWebViewNavigationBar alloc] initWithFrame:CGRectZero];
-    self.navigationBar.bundle = self.bundle;
-    [self.view addSubview:self.navigationBar];
-    
-    [self.wkWebView addObserver:self.navigationBar forKeyPath:kCanGoBack options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:NULL];
-    [self.wkWebView addObserver:self.navigationBar forKeyPath:kCanGoForward options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:NULL];
-    [self.wkWebView.scrollView addObserver:self.navigationBar forKeyPath:kContentOffset options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:NULL];
-}
-
-- (void)removeNavigationBarObserver
-{
-    if (!self.showBackForwardBar)
-    {
-        return;
-    }
-    
-    [self.wkWebView removeObserver:self.navigationBar forKeyPath:kCanGoBack];
-    [self.wkWebView removeObserver:self.navigationBar forKeyPath:kCanGoForward];
-    [self.wkWebView.scrollView removeObserver:self.navigationBar forKeyPath:kContentOffset];
+    WKWebViewNavigationBar* navigationBar = [[WKWebViewNavigationBar alloc] initWithFrame:CGRectZero];
+    navigationBar.bundle = self.bundle;
+    navigationBar.hidden = YES;
+    navigationBar.tintColor = self.backForwardBarTintColor;
+    navigationBar.backForwardSpace = self.backForwardBarSpace;
+    [self.view addSubview:navigationBar];
+    self.navigationBar = navigationBar;
+    self.KVOHandler.navigationBar = self.navigationBar;
 }
 
 - (void)showBackForwardBarIfNeeded
@@ -402,6 +501,13 @@ static NSString* const kContentOffset = @"contentOffset";
     }
     
     [self.navigationBar showToolBarIfNeeded];
+}
+
+- (void)webViewDocumentTitleDidChange:(NSString*)title
+{
+    if (title.length == 0) title = self.documentTitle;
+    
+    self.navigationItem.title = title;
 }
 
 - (void)loadResourceHtml:(NSString*)name
@@ -519,7 +625,8 @@ static NSString* const kContentOffset = @"contentOffset";
 {
     NSURL* url = navigationAction.request.URL;
     if ([url.scheme compare:@"http" options:NSCaseInsensitiveSearch] != NSOrderedSame &&
-        [url.scheme compare:@"https" options:NSCaseInsensitiveSearch] != NSOrderedSame)
+        [url.scheme compare:@"https" options:NSCaseInsensitiveSearch] != NSOrderedSame &&
+        [url.scheme compare:@"file" options:NSCaseInsensitiveSearch] != NSOrderedSame)
     {
         if ([[UIApplication sharedApplication] canOpenURL:url])
         {

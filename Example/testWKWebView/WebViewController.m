@@ -22,7 +22,12 @@
 {
     if ((self = [super init]))
     {
+        self.cachePolicy = NSURLRequestReloadIgnoringLocalAndRemoteCacheData;
         self.messageName = @"wkTestObject";
+        
+        self.progressColor = [UIColor orangeColor];
+        self.backForwardBarTintColor = [UIColor orangeColor];
+        self.backForwardBarSpace = 60.0;
     }
     
     return self;
@@ -46,14 +51,6 @@
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
-}
-
-- (void)viewWillLayoutSubviews
-{
-    [super viewWillLayoutSubviews];
-    
-    CGRect bounds = self.view.bounds;
-    self.wkWebView.frame = CGRectMake(0, 0, CGRectGetWidth(bounds), CGRectGetHeight(bounds));
 }
 
 #pragma mark - button action
@@ -80,6 +77,20 @@
         NSLog(@"%@", response);
     }];
 }
+
+- (nullable WKWebView *)webView:(WKWebView *)webView createWebViewWithConfiguration:(WKWebViewConfiguration *)configuration forNavigationAction:(WKNavigationAction *)navigationAction windowFeatures:(WKWindowFeatures *)windowFeatures
+{
+    WKFrameInfo* targetFrame = navigationAction.targetFrame;
+    if (!targetFrame.isMainFrame)
+    {
+        WebViewController* controller = [[WebViewController alloc] init];
+        controller.url = navigationAction.request.URL.absoluteString;
+        [self.navigationController pushViewController:controller animated:YES];
+    }
+    
+    return nil;
+}
+
 
 - (NSArray<NSHTTPCookie*> *)getCookiesProperty
 {
@@ -150,7 +161,7 @@
     return @[@"1", @"2", @3];
 }
 
-- (id)testFunc4:(id)argument
+- (id)testFunc4
 {
     return @"12345678";
 }

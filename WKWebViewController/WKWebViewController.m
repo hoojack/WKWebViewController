@@ -1,6 +1,6 @@
 //
 //  WKWebViewController.m
-//  WKWebViewController
+//  WKWebViewController <https://github.com/hoojack/WKWebViewController>
 //
 //  Created by hoojack on 2017/12/18.
 //  Copyright © 2017年 hoojack. All rights reserved.
@@ -44,7 +44,7 @@ NSString* const WKExtendJSFunctionNameKey = @"name";
 {
     if ((self = [super init]))
     {
-        self.messageName = @"WKWebview";
+        self.messageName = @"_WKWebview_";
     }
     
     return self;
@@ -107,6 +107,7 @@ NSString* const WKExtendJSFunctionNameKey = @"name";
     WKWebViewConfiguration* config = [[WKWebViewConfiguration alloc] init];
     config.userContentController = userContentController;
     config.allowsInlineMediaPlayback = YES;
+    config.mediaPlaybackRequiresUserAction = NO;
     
     WKPreferences* preferences = [[WKPreferences alloc] init];
     preferences.javaScriptCanOpenWindowsAutomatically = YES;
@@ -240,7 +241,7 @@ NSString* const WKExtendJSFunctionNameKey = @"name";
 static NSString* JSConfigSource = @_JS_STR(
 ;(function(w){
     w.#OBJECTNAME# = {
-        postMessage:function(args) {
+        postMessage:function(name, args) {
             var arr = [].slice.call(args), cbkey = null;
             if (arr.length > 0) {
                 var cb = arr[arr.length - 1];
@@ -250,7 +251,7 @@ static NSString* JSConfigSource = @_JS_STR(
                     this.callbacks[cbkey] = cb;
                 }
             }
-            var msg = {'name':args.callee.name, 'args':arr};
+            var msg = {'name':name, 'args':arr};
             if (cbkey != null) msg['callback'] = cbkey;
             w.webkit.messageHandlers.#OBJECTNAME#.postMessage(msg);
         },
@@ -284,10 +285,6 @@ static NSString* JSConfigSource = @_JS_STR(
     w.document.addEventListener('DOMContentLoaded', function(e) {
         w.#OBJECTNAME#.domContentLoaded();
     });
-    w.document.addEventListener('DOMSubtreeModified', function(e) {
-        var nodeName = e.target.nodeName;
-        w.#OBJECTNAME#.domSubtreeModified(nodeName);
-    });
     w.addEventListener('error', function(e) {
         w.#OBJECTNAME#.logError(e.message, e.filename, e.lineno);
     });
@@ -299,7 +296,7 @@ static NSString* JSConfigSource = @_JS_STR(
 })(window););
 static NSString* JSExtendSource = @_JS_STR(
 { #FUNCNAME#:function() {
-    this.postMessage(arguments);
+    this.postMessage('#FUNCNAME#', arguments);
 }});
 static NSString* JSCallbackSource = @_JS_STR(
     window.#OBJECTNAME#.callback('%@', %@);
@@ -322,8 +319,7 @@ static NSString* JSCallbackSource = @_JS_STR(
 {
     return @[@{WKExtendJSFunctionNameKey:@"logError"},
              @{WKExtendJSFunctionNameKey:@"logInfo"},
-             @{WKExtendJSFunctionNameKey:@"domContentLoaded"},
-             @{WKExtendJSFunctionNameKey:@"domSubtreeModified"}];
+             @{WKExtendJSFunctionNameKey:@"domContentLoaded"}];
 }
 
 - (NSDictionary<NSString *,id> *)getCustomConfigProperty
@@ -377,21 +373,6 @@ static NSString* JSCallbackSource = @_JS_STR(
     }
 }
 
-- (void)getWebDocumentTitle
-{
-    __weak typeof(self) weakSelf = self;
-    [self.wkWebView evaluateJavaScript:@"document.title;" completionHandler:^(id _Nullable response, NSError * _Nullable error)
-    {
-        if (response != nil)
-        {
-            NSString* title = (NSString*)response;
-            if (title.length == 0) title = weakSelf.documentTitle;
-            
-            weakSelf.navigationItem.title = response;
-        }
-    }];
-}
-
 #pragma mark - WKUIDelegate
 - (nullable WKWebView *)webView:(WKWebView *)webView createWebViewWithConfiguration:(WKWebViewConfiguration *)configuration forNavigationAction:(WKNavigationAction *)navigationAction windowFeatures:(WKWindowFeatures *)windowFeatures
 {
@@ -434,7 +415,7 @@ static NSString* JSCallbackSource = @_JS_STR(
 
 - (void)webView:(WKWebView *)webView didCommitNavigation:(null_unspecified WKNavigation *)navigation
 {
-    [self getWebDocumentTitle];
+    
 }
 
 - (void)webView:(WKWebView *)webView didFinishNavigation:(null_unspecified WKNavigation *)navigation
@@ -459,14 +440,18 @@ static NSString* JSCallbackSource = @_JS_STR(
         NSString* func = [bodyDict objectForKey:@"name"];
         NSArray* args = [bodyDict objectForKey:@"args"];
         NSString* callback = [bodyDict objectForKey:@"callback"];
-        SEL selector = NSSelectorFromString([func stringByAppendingString:@":"]);
+        if (args.count > 0) func = [func stringByAppendingString:@":"];
+        SEL selector = NSSelectorFromString(func);
         NSMethodSignature* sig = [self methodSignatureForSelector:selector];
         if (sig != nil)
         {
             NSInvocation* invocation = [NSInvocation invocationWithMethodSignature:sig];
             invocation.target = self;
             invocation.selector = selector;
-            [invocation setArgument:(void*)&args atIndex:2];
+            if (args.count > 0)
+            {
+               [invocation setArgument:(void*)&args atIndex:2];
+            }
             [invocation invoke];
             
             if (callback.length > 0)
@@ -529,7 +514,7 @@ static NSString* JSCallbackSource = @_JS_STR(
 
 - (void)invokeJSFunction:(NSString*)functionName
                     args:(NSArray*)args
-       completionHandler:(void(^)(id _Nullable, NSError * _Nullable error))completionHandler
+       completionHandler:(void(^)(id _Nullable response, NSError * _Nullable error))completionHandler
 {
     NSMutableArray<NSString*>* argsM = [NSMutableArray array];
     for (id arg in args)
@@ -561,26 +546,9 @@ static NSString* JSCallbackSource = @_JS_STR(
     NSLog(@"console.log:%@", arguments);
 }
 
-- (void)domContentLoaded:(id)arguments
+- (void)domContentLoaded
 {
     NSLog(@"domContentLoaded");
-    
-    [self getWebDocumentTitle];
-}
-
-- (void)domSubtreeModified:(id)arguments
-{
-    NSArray* args = (NSArray*)arguments;
-    if (args.count == 0)
-    {
-        return;
-    }
-    
-    NSString* nodeName = args.firstObject;
-    if ([nodeName compare:@"title" options:NSCaseInsensitiveSearch] == NSOrderedSame)
-    {
-        [self getWebDocumentTitle];
-    }
 }
 
 @end

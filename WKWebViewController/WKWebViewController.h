@@ -1,6 +1,6 @@
 //
 //  WKWebViewController.h
-//  WKWebViewController
+//  WKWebViewController <https://github.com/hoojack/WKWebViewController>
 //
 //  Created by hoojack on 2017/12/18.
 //  Copyright © 2017年 hoojack. All rights reserved.
@@ -48,11 +48,6 @@ FOUNDATION_EXPORT NSString* const WKExtendJSFunctionNameKey;
 @property (nonatomic, assign) NSTimeInterval timeoutInterval;
 
 /**
- * A title display on navigation bar, if not special, get "document.title" instead.
- */
-@property (nullable, nonatomic, copy) NSString* documentTitle;
-
-/**
  * Create NSURLRequest object with url property
  */
 - (nullable NSURLRequest*)createURLRequest;
@@ -71,8 +66,8 @@ FOUNDATION_EXPORT NSString* const WKExtendJSFunctionNameKey;
  * Returns function config for messageHandler
  
  @code
-  return @[@{WKExtendJSFunctionNameKey, @"functionName1"},
-           @{WKExtendJSFunctionNameKey, @"functionName2"}]
+  return @[@{WKExtendJSFunctionNameKey: @"functionName1"},
+           @{WKExtendJSFunctionNameKey: @"functionName2"}]
  @endcode
  eg:window.<messageName>.functionName1,  window.<messageName>.functionName2
  */
@@ -91,7 +86,7 @@ FOUNDATION_EXPORT NSString* const WKExtendJSFunctionNameKey;
  */
 - (void)invokeJSFunction:(NSString*)functionName
                     args:(NSArray*)args
-       completionHandler:(void(^)(id _Nullable, NSError * _Nullable error))completionHandler;
+       completionHandler:(void(^)(id _Nullable response, NSError * _Nullable error))completionHandler;
 
 @end
 

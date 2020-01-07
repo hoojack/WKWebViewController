@@ -11,6 +11,7 @@
 		h3 { font-size: 15px; background-color: #eaeaea; padding: 5px }
 		input { font-size: 12px; border: solid 1px #dcdcdc }
 		img { border: 1px solid #cacaca }
+		a.link { text-decoration:underline;} 
 	</style>
 </head>
 <body>
@@ -75,7 +76,7 @@
 
 	setTimeout(function() {
 		document.title = "delay set custom title";
-		document.getElementById("h3title").innerHTML = "delay h3 title";
+		//document.getElementById("h3title").innerHTML = "delay h3 title";
 	}, 2000);
 
 </script>
@@ -97,11 +98,12 @@
 <img src="/images/133456.jpeg" width="100px" height="100px" />
 <br/>
 <h3>Test Video</h3>
-<video style="width:300px;height: 200px" src="https://edge.ivideo.sina.com.cn/30969791801.mp4?KID=sina,viask&Expires=1574006400&ssig=aV%2FrAsackT" controls="controls" poster="/images/132573.jpeg" webkit-playsinline="true" playsinline="true">Not support</video>
+<video style="width:300px;height: 200px" src="http://vfx.mtime.cn/Video/2019/02/04/mp4/190204084208765161.mp4" controls="controls" poster="/images/132573.jpeg" webkit-playsinline="true" playsinline="true">Not support</video>
 <h3>Test link</h3>
-<a class="link" href="/wkwebview_01.html">Test page</a>
-<a class="link" href="/wkwebview_01.php">PHP page</a>
-
+<a class="link" href="/wkwebview_01.html">Test page</a><br>
+<a class="link" href="/wkwebview_01.php">PHP page</a><br>
+<a class="link" href="/wkwebview_01.html" target="_blank">open new page</a><br>
+<a class="link" href="#" onclick="window.open('/wkwebview_01.html');return false;">window open page</a>
 
 </body>
 </html>
