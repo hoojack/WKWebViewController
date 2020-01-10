@@ -19,7 +19,7 @@
 {
     [super viewDidLoad];
    
-    self.navigationItem.title = @"wkWebView";
+    self.navigationItem.title = @"WKWebView";
 }
 
 
@@ -31,7 +31,7 @@
 - (IBAction)onPush:(UIButton *)sender
 {
     WebViewController* vc = [[WebViewController alloc] init];
-    vc.url = @"https://www.hao123.com";
+    vc.url = @"http://www.265.com";
     vc.hidesBottomBarWhenPushed = YES;
     
     [self.navigationController pushViewController:vc animated:YES];
@@ -44,6 +44,7 @@
     vc.isPresent = YES;
     vc.hidesBottomBarWhenPushed = YES;
     UINavigationController* nav = [[UINavigationController alloc] initWithRootViewController:vc];
+    nav.navigationBar.translucent = NO;
     nav.modalPresentationStyle = UIModalPresentationFullScreen;
     [self presentViewController:nav animated:YES completion:nil];
 }

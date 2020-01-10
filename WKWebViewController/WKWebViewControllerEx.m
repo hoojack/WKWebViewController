@@ -226,12 +226,18 @@ static NSString* const kDocumentTitle = @"title";
 #pragma mark - WKWebViewProgressView
 @interface WKWebViewProgressView : UIView
 
+@property (class, assign, readonly) CGFloat height;
 @property (nonatomic, strong) UIView* progressBar;
 @property (nonatomic, assign) double progress;
 
 @end
 
 @implementation WKWebViewProgressView
+
++ (CGFloat)height
+{
+    return 2.5;
+}
 
 - (instancetype)initWithFrame:(CGRect)frame
 {
@@ -289,13 +295,34 @@ static NSString* const kDocumentTitle = @"title";
 
 @interface WKWebViewControllerKVOHandler : NSObject
 
-@property (nonatomic, weak) WKWebViewProgressView* progressView;
-@property (nonatomic, weak) WKWebViewNavigationBar* navigationBar;
 @property (nonatomic, weak) id<WKWebViewControllerKVOHandlerDelegate> delegate;
+@property (nonatomic, strong) NSHashTable* observers;
 
 @end
 
 @implementation WKWebViewControllerKVOHandler
+
+- (instancetype)init
+{
+    self = [super init];
+    
+    if (self != nil)
+    {
+        _observers = [NSHashTable weakObjectsHashTable];
+    }
+    
+    return self;
+}
+
+- (void)addKVOObserver:(id)observer
+{
+    [self.observers addObject:observer];
+}
+
+- (void)removeAllObservers
+{
+    [self.observers removeAllObjects];
+}
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context
 {
@@ -309,13 +336,13 @@ static NSString* const kDocumentTitle = @"title";
     }
     else if ([keyPath isEqualToString:kCanGoBack] ||
              [keyPath isEqualToString:kCanGoForward] ||
-             [keyPath isEqualToString:kContentOffset])
+             [keyPath isEqualToString:kContentOffset] ||
+             [keyPath isEqualToString:kEstimatedProgress])
     {
-        [self.navigationBar observeValueForKeyPath:keyPath ofObject:object change:change context:context];
-    }
-    else if ([keyPath isEqualToString:kEstimatedProgress])
-    {
-        [self.progressView observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+        for (id observer in self.observers)
+        {
+            [observer observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+        }
     }
 }
 
@@ -406,7 +433,7 @@ static NSString* const kDocumentTitle = @"title";
     [super viewWillLayoutSubviews];
     
     CGRect bounds = self.view.bounds;
-    self.progressView.frame = CGRectMake(0, 0, CGRectGetWidth(bounds), 2.5);
+    self.progressView.frame = CGRectMake(0, 0, CGRectGetWidth(bounds), [WKWebViewProgressView height]);
     
     CGFloat navigationBarHeight = [WKWebViewNavigationBar barHeight];
     if (@available(iOS 11.0, *))
@@ -445,6 +472,8 @@ static NSString* const kDocumentTitle = @"title";
 
 - (void)removeKVOHandler
 {
+    [self.KVOHandler removeAllObservers];
+    
     [self.wkWebView removeObserver:self.KVOHandler forKeyPath:kDocumentTitle];
     [self.wkWebView removeObserver:self.KVOHandler forKeyPath:kEstimatedProgress];
     [self.wkWebView removeObserver:self.KVOHandler forKeyPath:kCanGoBack];
@@ -464,7 +493,7 @@ static NSString* const kDocumentTitle = @"title";
     progressView.hidden = YES;
     [self.wkWebView.scrollView addSubview:progressView];
     self.progressView = progressView;
-    self.KVOHandler.progressView = self.progressView;
+    [self.KVOHandler addKVOObserver:self.progressView];
 }
 
 - (void)showProgressView:(BOOL)show
@@ -490,7 +519,7 @@ static NSString* const kDocumentTitle = @"title";
     navigationBar.backForwardSpace = self.backForwardBarSpace;
     [self.view addSubview:navigationBar];
     self.navigationBar = navigationBar;
-    self.KVOHandler.navigationBar = self.navigationBar;
+    [self.KVOHandler addKVOObserver:self.navigationBar];
 }
 
 - (void)showBackForwardBarIfNeeded

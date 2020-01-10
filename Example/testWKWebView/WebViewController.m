@@ -142,6 +142,7 @@
     return [config copy];
 }
 
+#pragma mark - Functions
 - (id)testFunc:(id)argument
 {
     NSLog(@"%@", argument);

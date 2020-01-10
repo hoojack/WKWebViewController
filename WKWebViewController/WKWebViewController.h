@@ -66,10 +66,21 @@ FOUNDATION_EXPORT NSString* const WKExtendJSFunctionNameKey;
  * Returns function config for messageHandler
  
  @code
-  return @[@{WKExtendJSFunctionNameKey: @"functionName1"},
-           @{WKExtendJSFunctionNameKey: @"functionName2"}]
+  return @[@{WKExtendJSFunctionNameKey: @"functionA"},
+           @{WKExtendJSFunctionNameKey: @"functionB"},
+           @{WKExtendJSFunctionNameKey: @"functionC"}];
+ 
  @endcode
- eg:window.<messageName>.functionName1,  window.<messageName>.functionName2
+ 
+    Javascript call:
+    window.<messageName>.functionA(arg1, arg2);
+    window.<messageName>.functionB();
+    window.<messageName>.functionC(arg1, arg2, function() {} );
+ 
+    Native Function:
+    - (void)functionA:(id)argument;
+    - (void)functionB;
+    - (id)functionC:(id)argument;
  */
 - (nullable NSArray<NSDictionary*>*)getExtendJSFunction;
 

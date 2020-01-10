@@ -13,7 +13,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface WKWebViewControllerEx : WKWebViewController
 
 /**
- * Show or hide progressBar
+ * Show or hide progressBar, Default is YES.
  */
 @property (nonatomic, assign) BOOL showProgress;
 /**
@@ -22,7 +22,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonnull, nonatomic, strong) UIColor* progressColor;
 
 /**
- * Show or hide backForward bar
+ * Show or hide backForward bar, Default is YES.
  */
 @property (nonatomic, assign) BOOL showBackForwardBar;
 /**
