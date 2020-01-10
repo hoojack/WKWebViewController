@@ -38,7 +38,7 @@ static NSString* const kDocumentTitle = @"title";
 
 + (CGFloat)barHeight
 {
-    return 44.0;
+    return 50.0;
 }
 
 - (instancetype)initWithFrame:(CGRect)frame
@@ -287,15 +287,8 @@ static NSString* const kDocumentTitle = @"title";
 
 #pragma mark - WKWebViewControllerKVOHandler
 
-@protocol WKWebViewControllerKVOHandlerDelegate <NSObject>
-@optional
-- (void)webViewDocumentTitleDidChange:(NSString*)title;
-
-@end
-
 @interface WKWebViewControllerKVOHandler : NSObject
 
-@property (nonatomic, weak) id<WKWebViewControllerKVOHandlerDelegate> delegate;
 @property (nonatomic, strong) NSHashTable* observers;
 
 @end
@@ -326,18 +319,11 @@ static NSString* const kDocumentTitle = @"title";
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context
 {
-    if ([keyPath isEqualToString:kDocumentTitle])
-    {
-        if (self.delegate != nil && [self.delegate respondsToSelector:@selector(webViewDocumentTitleDidChange:)])
-        {
-            NSString* title = [change objectForKey:NSKeyValueChangeNewKey];
-            [self.delegate webViewDocumentTitleDidChange:title];
-        }
-    }
-    else if ([keyPath isEqualToString:kCanGoBack] ||
-             [keyPath isEqualToString:kCanGoForward] ||
-             [keyPath isEqualToString:kContentOffset] ||
-             [keyPath isEqualToString:kEstimatedProgress])
+    if ([keyPath isEqualToString:kDocumentTitle] ||
+        [keyPath isEqualToString:kCanGoBack] ||
+        [keyPath isEqualToString:kCanGoForward] ||
+        [keyPath isEqualToString:kContentOffset] ||
+        [keyPath isEqualToString:kEstimatedProgress])
     {
         for (id observer in self.observers)
         {
@@ -349,7 +335,7 @@ static NSString* const kDocumentTitle = @"title";
 @end
 
 #pragma mark - WKWebViewControllerEx
-@interface WKWebViewControllerEx () <WKWebViewControllerKVOHandlerDelegate>
+@interface WKWebViewControllerEx ()
 
 @property (nonatomic, assign) BOOL isViewAppear;
 @property (nonatomic, strong) WKWebViewControllerKVOHandler* KVOHandler;
@@ -461,7 +447,7 @@ static NSString* const kDocumentTitle = @"title";
 - (void)setupKVOHandler
 {
     self.KVOHandler = [[WKWebViewControllerKVOHandler alloc] init];
-    self.KVOHandler.delegate = self;
+    [self.KVOHandler addKVOObserver:self];
     
     [self.wkWebView addObserver:self.KVOHandler forKeyPath:kDocumentTitle options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:NULL];
     [self.wkWebView addObserver:self.KVOHandler forKeyPath:kEstimatedProgress options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:NULL];
@@ -530,6 +516,18 @@ static NSString* const kDocumentTitle = @"title";
     }
     
     [self.navigationBar showToolBarIfNeeded];
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context
+{
+    if ([keyPath isEqualToString:kDocumentTitle])
+    {
+        NSString* title = [change objectForKey:NSKeyValueChangeNewKey];
+        
+        if (title.length == 0) title = self.documentTitle;
+        
+        self.navigationItem.title = title;
+    }
 }
 
 - (void)webViewDocumentTitleDidChange:(NSString*)title
