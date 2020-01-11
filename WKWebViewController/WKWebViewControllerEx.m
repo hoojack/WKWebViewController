@@ -530,13 +530,6 @@ static NSString* const kDocumentTitle = @"title";
     }
 }
 
-- (void)webViewDocumentTitleDidChange:(NSString*)title
-{
-    if (title.length == 0) title = self.documentTitle;
-    
-    self.navigationItem.title = title;
-}
-
 - (void)loadResourceHtml:(NSString*)name
 {
     NSBundle* bundle = [NSBundle bundleWithPath:[[NSBundle mainBundle] pathForResource:@"WKWebViewController" ofType:@"bundle"]];
