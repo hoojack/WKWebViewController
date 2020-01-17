@@ -1,6 +1,7 @@
 <?php
-	header("Content-Type:text/html;charset=utf-8");
-	echo "cookie:\n";
+	header("Content-type:text/html");
+	
+	echo "PHP Page cookie:\n";
 	$cookie = $_COOKIE;
 	foreach ($cookie as $key => $value) {
 		echo $key . ":" . $value ."\n";

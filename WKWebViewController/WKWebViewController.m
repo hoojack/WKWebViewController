@@ -123,6 +123,8 @@ NSString* const WKExtendJSFunctionNameKey = @"name";
     {
         self.wkWebView.scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
     }
+    
+    [self setupUserScriptWithWebView:wkWebView];
 }
 
 - (NSArray<NSHTTPCookie*>*)getCookiesProperty
@@ -373,6 +375,17 @@ static NSString* JSCallbackSource = @_JS_STR(
     }
 }
 
+- (void)setupUserScriptWithWebView:(WKWebView*)wkWebView
+{
+    [self setupCookiesWithWebView:wkWebView];
+    
+    [self setMainJSFunction:wkWebView];
+    
+    [self setExtendJSFunction:wkWebView];
+    
+    [self setCustomConfig:wkWebView];
+}
+
 #pragma mark - WKUIDelegate
 - (nullable WKWebView *)webView:(WKWebView *)webView createWebViewWithConfiguration:(WKWebViewConfiguration *)configuration forNavigationAction:(WKNavigationAction *)navigationAction windowFeatures:(WKWindowFeatures *)windowFeatures
 {
@@ -388,15 +401,7 @@ static NSString* JSCallbackSource = @_JS_STR(
 #pragma mark - WKNavigationDelegate
 - (void)webView:(WKWebView *)webView didStartProvisionalNavigation:(null_unspecified WKNavigation *)navigation
 {
-    [webView.configuration.userContentController removeAllUserScripts];
     
-    [self setupCookiesWithWebView:webView];
-    
-    [self setMainJSFunction:webView];
-    
-    [self setExtendJSFunction:webView];
-    
-    [self setCustomConfig:webView];
 }
 
 - (void)webView:(WKWebView *)webView didReceiveServerRedirectForProvisionalNavigation:(null_unspecified WKNavigation *)navigation

@@ -46,6 +46,11 @@
     
     UIBarButtonItem* closeBarItem =  [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"icon_nav_close"] style:UIBarButtonItemStylePlain target:self action:@selector(onCloseAction:)];
     self.navigationItem.leftBarButtonItem = closeBarItem;
+    
+    UIBarButtonItem* refreshBarItem =  [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemRefresh target:self action:@selector(onRefreshAction:)];
+    UIBarButtonItem* clearBarItem =  [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemTrash target:self action:@selector(onClearAction:)];
+    
+    self.navigationItem.rightBarButtonItems = @[refreshBarItem, clearBarItem];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -64,6 +69,16 @@
     {
         [self.navigationController popViewControllerAnimated:YES];
     }
+}
+
+- (void)onClearAction:(id)sender
+{
+    [[self class] clearCache];
+}
+
+- (void)onRefreshAction:(id)sender
+{
+    [self.wkWebView reload];
 }
 
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation

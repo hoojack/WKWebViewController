@@ -16,7 +16,15 @@ function testwebkit()
 		f2:"v2"
 	};
 	
-    webkit.messageHandlers.wkTestObject.postMessage(["123", 456, args]);
+    window.webkit.messageHandlers.wkTestObject.postMessage(["123", 456, args]);
+}
+
+function testCallback()
+{
+	window.wkTestObject.testFunc3('arg1', {a:1, b:2}, function(response){
+		alert(response);
+		return {a:10};
+	});
 }
 
 function testAjax()
@@ -36,7 +44,8 @@ function testAjax()
  
 </script>
 <br>
-<input type="button" name="test1" value = "testwebkit" onclick="testwebkit();">
-<input type="button" name="test2" value = "testAjax" onclick="testAjax();">
+<input type="button" name="test" value = "webkit-PostMessage" onclick="testwebkit();">
+<input type="button" name="test" value = "testCallback" onclick="testCallback();">
+<input type="button" name="test" value = "testAjax" onclick="testAjax();">
 </body>
 </html>
