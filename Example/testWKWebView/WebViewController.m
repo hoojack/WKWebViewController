@@ -78,7 +78,7 @@
 
 - (void)onRefreshAction:(id)sender
 {
-    [self.wkWebView reload];
+    [self reload];
 }
 
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation

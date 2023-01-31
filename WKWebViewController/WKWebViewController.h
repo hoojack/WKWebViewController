@@ -33,7 +33,7 @@ FOUNDATION_EXPORT NSString* const WKExtendJSFunctionNameKey;
 @property (nonnull, nonatomic, copy) NSString* messageName;
 
 /**
- * The url string to which to navigate.
+ * The url string for the new WKWebviewController.
  */
 @property (nonnull, nonatomic, copy) NSString* url;
 
@@ -48,14 +48,29 @@ FOUNDATION_EXPORT NSString* const WKExtendJSFunctionNameKey;
 @property (nonatomic, assign) NSTimeInterval timeoutInterval;
 
 /**
- * Create NSURLRequest object with url property
+ * Returns a WKWebViewController initialized with a specified url.
  */
-- (nullable NSURLRequest*)createURLRequest;
+- (instancetype)initWithUrl:(NSString*)url;
+
+/**
+ * Navigates to a  specified url.
+ */
+- (void)loadURL:(NSURL*)url;
+
+/**
+ * Navigates to a requested URL.
+ */
+- (void)loadRequest:(NSURLRequest *)request;
 
 /**
  * Sets the webpage contents and base URL.
  */
 - (void)loadHTMLString:(NSString *)string baseURL:(nullable NSURL *)baseURL;
+
+/**
+ * Reloads the current page.
+ */
+- (void)reload;
 
 /**
  * Returns custom cookie property array

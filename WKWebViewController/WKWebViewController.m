@@ -42,9 +42,16 @@ NSString* const WKExtendJSFunctionNameKey = @"name";
 
 - (instancetype)init
 {
-    if ((self = [super init]))
+    return [self initWithUrl:@""];
+}
+
+- (instancetype)initWithUrl:(NSString*)url
+{
+    self = [super init];
+    if (self != nil)
     {
         self.messageName = @"_WKWebview_";
+        self.url = url;
     }
     
     return self;
@@ -67,7 +74,7 @@ NSString* const WKExtendJSFunctionNameKey = @"name";
     self.automaticallyAdjustsScrollViewInsets = NO;
     
     [self createWKWebView];
-    [self loadURL];
+    [self loadURL:[NSURL URLWithString:self.url]];
 }
 
 - (void)didReceiveMemoryWarning
@@ -123,8 +130,6 @@ NSString* const WKExtendJSFunctionNameKey = @"name";
     {
         self.wkWebView.scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
     }
-    
-    [self setupUserScriptWithWebView:wkWebView];
 }
 
 - (NSArray<NSHTTPCookie*>*)getCookiesProperty
@@ -205,27 +210,23 @@ NSString* const WKExtendJSFunctionNameKey = @"name";
     }
 }
 
-- (NSURLRequest *)createURLRequest
+- (NSURLRequest *)createURLRequestWithURL:(NSURL*)url
 {
-    NSURL* url = [NSURL URLWithString:self.url];
     NSURLRequest* request = [[NSURLRequest alloc] initWithURL:url cachePolicy:self.cachePolicy timeoutInterval:self.timeoutInterval];
     
     return request;
 }
 
-- (void)loadURL
+- (void)loadURL:(NSURL*)url
 {
-    NSURLRequest* request = [self createURLRequest];
-    if (request == nil)
-    {
-        return;
-    }
-    
-    [self loadURLWithRequest:request];
+    NSURLRequest* urlRequest = [self createURLRequestWithURL:url];
+    [self loadRequest:urlRequest];
 }
 
-- (void)loadURLWithRequest:(NSURLRequest*)request
+- (void)loadRequest:(NSURLRequest*)request
 {
+    [self setupUserScriptWithWebView:self.wkWebView];
+    
     NSMutableURLRequest* requestM = [request mutableCopy];
     
     [self setupCustomRequestHeader:requestM];
@@ -236,6 +237,11 @@ NSString* const WKExtendJSFunctionNameKey = @"name";
 - (void)loadHTMLString:(NSString *)string baseURL:(nullable NSURL *)baseURL
 {
     [self.wkWebView loadHTMLString:string baseURL:baseURL];
+}
+
+- (void)reload
+{
+    [self loadURL:self.wkWebView.URL];
 }
 
 #pragma mark - JSConfig
@@ -377,6 +383,8 @@ static NSString* JSCallbackSource = @_JS_STR(
 
 - (void)setupUserScriptWithWebView:(WKWebView*)wkWebView
 {
+    [wkWebView.configuration.userContentController removeAllUserScripts];
+    
     [self setupCookiesWithWebView:wkWebView];
     
     [self setMainJSFunction:wkWebView];
@@ -392,7 +400,7 @@ static NSString* JSCallbackSource = @_JS_STR(
     WKFrameInfo* targetFrame = navigationAction.targetFrame;
     if (!targetFrame.isMainFrame)
     {
-        [self loadURLWithRequest:navigationAction.request];
+        [self loadRequest:navigationAction.request];
     }
     
     return nil;

@@ -30,8 +30,8 @@
 
 - (IBAction)onPush:(UIButton *)sender
 {
-    WebViewController* vc = [[WebViewController alloc] init];
-    vc.url = @"http://www.265.com";
+    WebViewController* vc = [[WebViewController alloc] initWithUrl:@"http://www.265.com"];
+    //vc.url = @"http://www.265.com";
     vc.hidesBottomBarWhenPushed = YES;
     
     [self.navigationController pushViewController:vc animated:YES];
