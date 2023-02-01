@@ -1,5 +1,4 @@
-## WKWebViewController
-对iOS WKWebView的二次封装，更方便的使用WkWebView。
+## 对iOS WKWebView的二次封装，更方便的使用WkWebView。
 
 特性
 ==============
