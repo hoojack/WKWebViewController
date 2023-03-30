@@ -351,9 +351,9 @@ static NSString* const kDocumentTitle = @"title";
 + (void)clearCache
 {
     NSError* error = nil;
-    NSString* cachePath = [@"~/Library/WebKit" stringByExpandingTildeInPath];
+    NSString* wkPath = [@"~/Library/WebKit" stringByExpandingTildeInPath];
     NSString* appID = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleIdentifier"];
-    NSString* path = [cachePath stringByAppendingPathComponent:appID];
+    NSString* path = [wkPath stringByAppendingPathComponent:appID];
     [[NSFileManager defaultManager] removeItemAtPath:path error:&error];
     if (error != nil)
     {
@@ -363,6 +363,14 @@ static NSString* const kDocumentTitle = @"title";
     error = nil;
     NSString* cookiePath = [@"~/Library/Cookies" stringByExpandingTildeInPath];
     [[NSFileManager defaultManager] removeItemAtPath:cookiePath error:&error];
+    if (error != nil)
+    {
+        NSLog(@"%@", error);
+    }
+    
+    error = nil;
+    NSString* cachePath = [@"~/Library/Caches" stringByExpandingTildeInPath];
+    [[NSFileManager defaultManager] removeItemAtPath:cachePath error:&error];
     if (error != nil)
     {
         NSLog(@"%@", error);

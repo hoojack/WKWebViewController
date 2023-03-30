@@ -513,9 +513,12 @@ static NSString* JSCallbackSource = @_JS_STR(
 - (void)invokeJSCallback:(NSInvocation*)invocation callback:(NSString*)callback
 {
     void* retPtr = NULL;
-    [invocation getReturnValue:&retPtr];
+    const char* retType = invocation.methodSignature.methodReturnType;
+    if (strcmp(retType, @encode(id)) == 0)
+    {
+        [invocation getReturnValue:&retPtr];
+    }
     id retVal = (__bridge id)retPtr;
-    
     NSString* retStr = [self argumentToString:retVal];
     NSString* JSCallbackFormat = [JSCallbackSource stringByReplacingOccurrencesOfString:@"#OBJECTNAME#" withString:self.messageName];
     NSString* JSCallback = [NSString stringWithFormat:JSCallbackFormat, callback, retStr];
